@@ -1,0 +1,129 @@
+package unit;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sportstracker.dto.LoginRequest;
+import org.sportstracker.dto.LoginResponse;
+import org.sportstracker.dto.UserSignupRequest;
+import org.sportstracker.dto.UserSignupResponse;
+import org.sportstracker.model.User;
+import org.sportstracker.repository.UserRepository;
+import org.sportstracker.service.AuthService;
+import org.sportstracker.service.JwtTokenService;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+public class AuthServiceTest {
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private JwtTokenService jwtTokenService;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @InjectMocks
+    private AuthService authService;
+
+    private LoginRequest loginRequest;
+
+    @Mock
+    private Authentication authentication;
+    private UserSignupRequest signupRequest;
+
+    private final AtomicLong idGenerator = new AtomicLong(1);
+
+    @BeforeEach
+    void setUp() {
+        loginRequest = new LoginRequest("testUser", "testPass");
+
+        signupRequest = new UserSignupRequest("newUser", "newPass");
+    }
+
+    @Test
+    void authenticate_ShouldReturnLoginResponse_WhenCredentialsValid() {
+        // Arrange
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testUser");
+        when(jwtTokenService.generateToken(authentication)).thenReturn("jwtToken123");
+        when(jwtTokenService.extractExpirationTime("jwtToken123")).thenReturn(123456789L);
+
+        // Act
+        LoginResponse response = authService.authenticate(loginRequest);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals("jwtToken123", response.getToken());
+        assertEquals("testUser", response.getName());
+        assertEquals(123456789L, response.getExpiresAt());
+
+        verify(authenticationManager, times(1)).authenticate(any());
+        verify(jwtTokenService, times(1)).generateToken(authentication);
+        verify(jwtTokenService, times(1)).extractExpirationTime("jwtToken123");
+    }
+
+    @Test
+    void signup_ShouldCreateUser_WhenUsernameNotTaken() {
+        // Arrange
+        when(userRepository.existsByUsername("newUser")).thenReturn(false);
+        when(passwordEncoder.encode("newPass")).thenReturn("encodedPass");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setId(idGenerator.getAndIncrement()); // simulate DB assigning ID
+            return u;
+        });
+
+        // Act
+        UserSignupResponse response = authService.signup(signupRequest);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals("newUser", response.getUsername());
+        assertNotNull(response.getId());
+
+        verify(userRepository, times(1)).existsByUsername("newUser");
+        verify(passwordEncoder, times(1)).encode("newPass");
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void signup_ShouldThrowException_WhenUsernameAlreadyExists() {
+        // Arrange
+        when(userRepository.existsByUsername("newUser")).thenReturn(true);
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> authService.signup(signupRequest));
+
+        assertEquals("Username already taken", exception.getMessage());
+
+        verify(userRepository, times(1)).existsByUsername("newUser");
+        verify(userRepository, never()).save(any());
+        verify(passwordEncoder, never()).encode(any());
+    }
+}
