@@ -1,6 +1,8 @@
 package org.sportstracker.config;
 
+import lombok.RequiredArgsConstructor;
 import org.sportstracker.security.CustomJwtAuthenticationConverter;
+import org.sportstracker.security.JwtAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,8 +16,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.OPTIONS;
+
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -30,17 +38,23 @@ public class SecurityConfig {
         return new ProviderManager(authProvider);
     }
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, CustomJwtAuthenticationConverter converter) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/auth/login").permitAll();
-                    auth.requestMatchers("/api/auth/signup").permitAll();
+                    auth.requestMatchers(OPTIONS, "/**").permitAll();
+                    auth.requestMatchers("/api/auth/**").permitAll();
+                    auth.requestMatchers("/health").permitAll();
+                    auth.requestMatchers(GET, "/api/football/events").permitAll();
                     auth.anyRequest().authenticated();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
                 .build();
     }
 

@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.sportstracker.model.User;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -16,15 +17,14 @@ public class AuthUser implements UserDetails {
     private final User user;
 
     @Override
-    public String getUsername() { return user.getUsername(); }
+    public String getUsername() { return user.getEmail(); }
 
     @Override
     public String getPassword() { return user.getPassword(); }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Return a list of roles or authorities assigned to the user.
-        return List.of();
+        return List.of(new SimpleGrantedAuthority(user.getRole().name()));
     }
 
     @Override

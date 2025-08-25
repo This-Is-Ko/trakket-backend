@@ -1,11 +1,11 @@
 package org.sportstracker.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
 import jakarta.persistence.MappedSuperclass;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,14 +29,22 @@ public abstract class Event {
     @Column(length = 100)
     protected String competition;
 
+    protected Integer round;
+
     @Column(length = 200)
     protected String location;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     protected EventStatus status;
 
     @Column(name = "external_link")
     protected String externalLink;
 
-    public abstract String getSummary();
+    @Column(name = "last_updated")
+    protected LocalDateTime lastUpdated;
+
+    abstract String getTitle();
+
+    abstract String getSubtitle();
 }

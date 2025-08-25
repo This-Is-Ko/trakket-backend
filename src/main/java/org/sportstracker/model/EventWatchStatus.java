@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.sportstracker.enums.WatchedStatus;
 
+import java.time.LocalDateTime;
+
 @Data
 @MappedSuperclass
 public abstract class EventWatchStatus {
@@ -19,4 +21,7 @@ public abstract class EventWatchStatus {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Column(nullable = false)
+    protected LocalDateTime updatedDateTime;
 }

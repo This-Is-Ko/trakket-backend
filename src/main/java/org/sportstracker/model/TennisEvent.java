@@ -6,7 +6,12 @@ public class TennisEvent extends Event {
     private String score;
 
     @Override
-    public String getSummary() {
-        return playerOne + " vs " + playerTwo + " (" + competition + ")";
+    public String getTitle() {
+        return playerOne + " vs " + playerTwo;
+    }
+
+    @Override
+    public String getSubtitle() {
+        return "Round " + round;
     }
 }

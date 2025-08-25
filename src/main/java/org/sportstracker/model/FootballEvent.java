@@ -2,12 +2,15 @@ package org.sportstracker.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.sportstracker.enums.ExternalFootballSource;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -29,9 +32,18 @@ public class FootballEvent extends Event {
     @Column
     private Integer awayScore;
 
+    @Enumerated(EnumType.STRING)
+    protected ExternalFootballSource externalSource;
+
+    protected Long externalSourceId;
+
     @Override
-    public String getSummary() {
-        return homeTeam + " vs " + awayTeam + " (" + competition + ")";
+    public String getTitle() {
+        return homeTeam + " vs " + awayTeam;
     }
 
+    @Override
+    public String getSubtitle() {
+        return String.format("Round " + round);
+    }
 }

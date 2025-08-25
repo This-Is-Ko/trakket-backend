@@ -2,16 +2,16 @@ package org.sportstracker.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Getter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoginResponse {
+public class PaginatedResponse {
 
-    private String token;
-    private String name;
-    private Long expiresAt;
+    int pageNumber;
+    int pageSize;
+    long totalElements;
+    boolean last;
 
 }

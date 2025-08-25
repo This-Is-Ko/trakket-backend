@@ -23,7 +23,10 @@ public class JwtTokenService {
 
     public String generateToken(Authentication authentication) {
         Instant now = Instant.now();
-        String scope = "ROLE_ADMIN";
+        String scope = "ROLE_USER";
+        if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            scope = "ROLE_ADMIN";
+        }
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)

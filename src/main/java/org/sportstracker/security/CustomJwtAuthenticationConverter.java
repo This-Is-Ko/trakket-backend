@@ -16,8 +16,8 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, JwtAuthe
 
     @Override
     public JwtAuthenticationToken convert(Jwt jwt) {
-        String username = jwt.getClaimAsString("sub");
-        AuthUser authUser = (AuthUser) userDetailsService.loadUserByUsername(username);
+        String email = jwt.getClaimAsString("sub");
+        AuthUser authUser = (AuthUser) userDetailsService.loadUserByUsername(email);
         JwtAuthenticationToken token = new JwtAuthenticationToken(jwt, authUser.getAuthorities());
         token.setDetails(authUser.getUser());
         return token;

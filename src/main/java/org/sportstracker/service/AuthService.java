@@ -6,6 +6,7 @@ import org.sportstracker.dto.LoginResponse;
 import org.sportstracker.dto.UserSignupRequest;
 import org.sportstracker.dto.UserSignupResponse;
 import org.sportstracker.enums.UserRole;
+import org.sportstracker.exception.UserAlreadyExistsException;
 import org.sportstracker.model.User;
 import org.sportstracker.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,7 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public LoginResponse authenticate(LoginRequest authRequest) {
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword());
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(authRequest.getEmail(), authRequest.getPassword());
         Authentication authentication = authenticationManager.authenticate(token);
 
         String jwtToken = jwtTokenService.generateToken(authentication);
@@ -34,12 +35,16 @@ public class AuthService {
     }
 
     public UserSignupResponse signup(UserSignupRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Email already taken");
+        }
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username already taken");
+            throw new UserAlreadyExistsException("Username already taken");
         }
 
         User user = new User();
         user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(UserRole.ROLE_USER);
         userRepository.save(user);
