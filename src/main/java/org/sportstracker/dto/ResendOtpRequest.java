@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserSignupResponse {
-    private String username;
+public class ResendOtpRequest {
+
+    private String email;
+
 }

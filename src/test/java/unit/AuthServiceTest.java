@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sportstracker.dto.LoginRequest;
 import org.sportstracker.dto.LoginResponse;
+import org.sportstracker.dto.UserSignupOtpChallengeResponse;
 import org.sportstracker.dto.UserSignupRequest;
 import org.sportstracker.dto.UserSignupResponse;
 import org.sportstracker.model.User;
@@ -61,7 +62,7 @@ public class AuthServiceTest {
     void setUp() {
         loginRequest = new LoginRequest("testUser", "testPass");
 
-        signupRequest = new UserSignupRequest("newUser", "newPass");
+        signupRequest = new UserSignupRequest("newUser","newuse@gmail.com", "newPass");
     }
 
     @Test
@@ -99,12 +100,11 @@ public class AuthServiceTest {
         });
 
         // Act
-        UserSignupResponse response = authService.signup(signupRequest);
+        UserSignupOtpChallengeResponse response = authService.signup(signupRequest);
 
         // Assert
         assertNotNull(response);
         assertEquals("newUser", response.getUsername());
-        assertNotNull(response.getId());
 
         verify(userRepository, times(1)).existsByUsername("newUser");
         verify(passwordEncoder, times(1)).encode("newPass");

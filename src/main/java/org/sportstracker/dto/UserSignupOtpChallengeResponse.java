@@ -7,6 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserSignupResponse {
+public class UserSignupOtpChallengeResponse {
     private String username;
 }

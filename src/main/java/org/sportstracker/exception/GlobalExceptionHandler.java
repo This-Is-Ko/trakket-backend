@@ -14,8 +14,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<Map<String, String>> handleUserAlreadyExists(UserAlreadyExistsException ex) {
         return ResponseEntity
-                .status(HttpStatus.CONFLICT) // 409
-                .body(Map.of("error", ex.getMessage()));
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("message", ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -25,6 +25,21 @@ public class GlobalExceptionHandler {
                         "error", "INSUFFICIENT_PERMISSIONS",
                         "message", "You do not have permission to perform this action."
                 ));
+    }
+
+    @ExceptionHandler(SignupException.class)
+    public ResponseEntity<Map<String, String>> handleSignupException(SignupException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OtpException.class)
+    public ResponseEntity<Map<String, String>> handleOtpException(OtpException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OtpSendException.class)
+    public ResponseEntity<Map<String, String>> handleOtpSendException(OtpSendException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error while sending OTP. Please try again later."));
     }
 
     // fallback for unexpected cases
