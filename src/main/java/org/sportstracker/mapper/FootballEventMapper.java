@@ -1,6 +1,6 @@
 package org.sportstracker.mapper;
 
-import org.sportstracker.dto.FootballEventDto;
+import org.sportstracker.dto.football.FootballEventDto;
 import org.sportstracker.model.FootballEvent;
 
 public class FootballEventMapper {

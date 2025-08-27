@@ -47,7 +47,6 @@ public class SecurityConfig {
                     auth.requestMatchers(OPTIONS, "/**").permitAll();
                     auth.requestMatchers("/api/auth/**").permitAll();
                     auth.requestMatchers("/health").permitAll();
-                    auth.requestMatchers(GET, "/api/football/events").permitAll();
                     auth.anyRequest().authenticated();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

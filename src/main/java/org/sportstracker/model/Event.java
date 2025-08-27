@@ -26,9 +26,6 @@ public abstract class Event {
     @Column(nullable = false)
     protected LocalDateTime dateTime;
 
-    @Column(length = 100)
-    protected String competition;
-
     protected Integer round;
 
     @Column(length = 200)

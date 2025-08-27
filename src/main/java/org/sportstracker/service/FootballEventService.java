@@ -2,10 +2,11 @@ package org.sportstracker.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
-import org.sportstracker.dto.FootballEventDto;
-import org.sportstracker.dto.FootballEventWithStatus;
-import org.sportstracker.dto.FootballEventsWithStatusResponse;
+import org.sportstracker.dto.football.FootballEventDto;
+import org.sportstracker.dto.football.FootballEventWithStatus;
+import org.sportstracker.dto.football.FootballEventsWithStatusResponse;
 import org.sportstracker.enums.EventStatus;
+import org.sportstracker.enums.FootballCompetition;
 import org.sportstracker.enums.WatchedStatus;
 import org.sportstracker.mapper.FootballEventMapper;
 import org.sportstracker.model.FootballEvent;
@@ -43,7 +44,7 @@ public class FootballEventService implements EventService<FootballEvent> {
         return footballEventRepository.findAll();
     }
 
-    private Page<FootballEvent> getEventPage(Integer page, Integer pageSize, String competition, EventStatus status,
+    private Page<FootballEvent> getEventPage(Integer page, Integer pageSize, FootballCompetition competition, EventStatus status,
                                              Boolean ascending) {
         Sort sort = (ascending != null && ascending)
                 ? Sort.by("dateTime").ascending()
@@ -64,7 +65,7 @@ public class FootballEventService implements EventService<FootballEvent> {
         return footballEventRepository.findAll(spec, pageable);
     }
 
-    public FootballEventsWithStatusResponse getEvents(User user, Integer page, Integer pageSize, String competition, EventStatus status, Boolean ascending) {
+    public FootballEventsWithStatusResponse getEvents(User user, Integer page, Integer pageSize, FootballCompetition competition, EventStatus status, Boolean ascending) {
         if (ascending == null && EventStatus.COMPLETED.equals(status)) {
             ascending = false;
         } else if (ascending == null && EventStatus.SCHEDULED.equals(status)) {

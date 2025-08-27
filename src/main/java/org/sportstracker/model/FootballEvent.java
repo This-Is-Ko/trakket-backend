@@ -5,12 +5,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.sportstracker.enums.ExternalFootballSource;
+import org.sportstracker.enums.FootballCompetition;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -19,6 +19,10 @@ import org.sportstracker.enums.ExternalFootballSource;
 @Entity
 @Table(name = "football_events")
 public class FootballEvent extends Event {
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 100)
+    private FootballCompetition competition;
 
     @Column(nullable = false, length = 100)
     private String homeTeam;

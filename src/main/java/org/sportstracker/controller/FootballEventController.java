@@ -1,15 +1,15 @@
 package org.sportstracker.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.sportstracker.dto.FootballEventsWithStatusResponse;
+import org.sportstracker.dto.football.FootballEventsWithStatusResponse;
 import org.sportstracker.dto.WatchStatusUpdateRequest;
 import org.sportstracker.dto.WatchStatusUpdateResponse;
 import org.sportstracker.enums.EventStatus;
+import org.sportstracker.enums.FootballCompetition;
 import org.sportstracker.model.FootballEvent;
 import org.sportstracker.model.FootballEventWatchStatus;
 import org.sportstracker.model.User;
 import org.sportstracker.service.FootballEventService;
-import org.sportstracker.service.fantasypremierleague.FantasyPremierLeagueEventSyncService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -26,7 +26,7 @@ public class FootballEventController {
     public FootballEventsWithStatusResponse getFootballEvents(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "pageSize", required = false) Integer pageSize,
-            @RequestParam(name = "competition", required = false) String competition,
+            @RequestParam(name = "competition", required = false) FootballCompetition competition,
             @RequestParam(name = "status", required = false) EventStatus status,
             @RequestParam(name = "ascending ", required = false) Boolean ascending) {
         return footballEventService.getEvents(null, page, pageSize, competition, status, ascending);
@@ -54,7 +54,7 @@ public class FootballEventController {
             Authentication authentication,
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "pageSize", required = false) Integer pageSize,
-            @RequestParam(name = "competition", required = false) String competition,
+            @RequestParam(name = "competition", required = false) FootballCompetition competition,
             @RequestParam(name = "status", required = false) EventStatus status,
             @RequestParam(name = "ascending ", required = false) Boolean ascending) {
 
