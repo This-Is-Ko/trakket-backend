@@ -51,7 +51,7 @@ public class MotorsportEvent extends Event {
 
     @Override
     public String getSubtitle() {
-        return circuitName + " | Round " + (round != null ? round : "-");
+        return "Round " + (round != null ? round : "-");
     }
 
     public void updateResult(MotorsportEvent other) {

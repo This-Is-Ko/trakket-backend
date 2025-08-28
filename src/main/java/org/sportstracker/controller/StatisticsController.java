@@ -1,7 +1,7 @@
 package org.sportstracker.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.sportstracker.dto.football.StatisticsResponse;
+import org.sportstracker.dto.statistics.StatisticsResponse;
 import org.sportstracker.model.User;
 import org.sportstracker.service.StatisticsService;
 import org.springframework.http.ResponseEntity;

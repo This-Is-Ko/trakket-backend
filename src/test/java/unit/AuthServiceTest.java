@@ -1,5 +1,6 @@
 package unit;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -53,6 +55,10 @@ public class AuthServiceTest {
 
     @Mock
     private Authentication authentication;
+
+    @Mock
+    private HttpServletResponse httpServletResponse;
+
     private UserSignupRequest signupRequest;
 
     private final AtomicLong idGenerator = new AtomicLong(1);
@@ -60,12 +66,11 @@ public class AuthServiceTest {
     @BeforeEach
     void setUp() {
         loginRequest = new LoginRequest("testUser", "testPass");
-
         signupRequest = new UserSignupRequest("newUser","newuse@gmail.com", "newPass");
     }
 
     @Test
-    void authenticate_ShouldReturnLoginResponse_WhenCredentialsValid() {
+    void authenticate_ShouldReturnLoginResponseAndSetCookie_WhenCredentialsValid() {
         // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
@@ -74,14 +79,23 @@ public class AuthServiceTest {
         when(jwtTokenService.extractExpirationTime("jwtToken123")).thenReturn(123456789L);
 
         // Act
-        LoginResponse response = authService.authenticate(loginRequest);
+        LoginResponse response = authService.authenticate(loginRequest, httpServletResponse);
 
-        // Assert
+        // Assert body
         assertNotNull(response);
-        assertEquals("jwtToken123", response.getToken());
         assertEquals("testUser", response.getName());
         assertEquals(123456789L, response.getExpiresAt());
 
+        // Assert cookie added
+        verify(httpServletResponse, times(1)).addCookie(argThat(cookie ->
+                "access_token".equals(cookie.getName()) &&
+                        "jwtToken123".equals(cookie.getValue()) &&
+                        cookie.isHttpOnly() &&
+                        cookie.getSecure() &&
+                        "/".equals(cookie.getPath())
+        ));
+
+        // Verify calls
         verify(authenticationManager, times(1)).authenticate(any());
         verify(jwtTokenService, times(1)).generateToken(authentication);
         verify(jwtTokenService, times(1)).extractExpirationTime("jwtToken123");

@@ -2,7 +2,10 @@ package org.sportstracker.service;
 
 import lombok.RequiredArgsConstructor;
 import org.sportstracker.dto.football.FootballEventWithStatus;
-import org.sportstracker.dto.football.StatisticsResponse;
+import org.sportstracker.dto.statistics.StatisticsFootball;
+import org.sportstracker.dto.statistics.StatisticsMotorsport;
+import org.sportstracker.dto.statistics.StatisticsOverall;
+import org.sportstracker.dto.statistics.StatisticsResponse;
 import org.sportstracker.dto.motorsport.MotorsportEventWithStatus;
 import org.sportstracker.enums.WatchedStatus;
 import org.sportstracker.mapper.FootballEventMapper;
@@ -19,6 +22,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,28 +42,34 @@ public class StatisticsService {
         Map<String, Long> footballMatchesPerCompetition = getFootballMatchesPerCompetition(user);
 
         List<FootballEventWithStatus> recentMatches = footballWatchStatusRepository
-                .findByUserAndStatusNotOrderByEvent_DateTimeDesc(user, WatchedStatus.UNWATCHED, PageRequest.of(0, 10))
+                .findByUserAndStatusNotOrderByEvent_DateTimeDesc(user, WatchedStatus.UNWATCHED, PageRequest.of(0, 5))
                 .stream()
                 .map(ws -> new FootballEventWithStatus(FootballEventMapper.toDto(ws.getEvent()), ws.getStatus()))
                 .toList();
+        StatisticsFootball footballStatistics = new StatisticsFootball(footballStatusDistribution, footballMatchesPerCompetition, recentMatches);
 
         // --- Motorsport statistics ---
         Map<WatchedStatus, Long> motorsportStatusDistribution = getWatchStatusDistribution(user, motorsportWatchStatusRepository);
         Map<String, Long> motorsportRacesPerCompetition = getMotorsportRacesPerCompetition(user);
 
         List<MotorsportEventWithStatus> recentRaces = motorsportWatchStatusRepository
-                .findByUserAndStatusNotOrderByEvent_DateTimeDesc(user, WatchedStatus.UNWATCHED, PageRequest.of(0, 10))
+                .findByUserAndStatusNotOrderByEvent_DateTimeDesc(user, WatchedStatus.UNWATCHED, PageRequest.of(0, 5))
                 .stream()
                 .map(ws -> new MotorsportEventWithStatus(MotorsportEventMapper.toDto(ws.getEvent()), ws.getStatus()))
                 .toList();
+        StatisticsMotorsport statisticsMotorsport = new StatisticsMotorsport(motorsportStatusDistribution, motorsportRacesPerCompetition, recentRaces);
 
+        // Create overall stats
+        Map<WatchedStatus, Long> overallWatchStatusDistribution = new EnumMap<>(WatchedStatus.class);
+        footballStatusDistribution.forEach((status, count) ->
+                overallWatchStatusDistribution.merge(status, count, Long::sum));
+        motorsportStatusDistribution.forEach((status, count) ->
+                overallWatchStatusDistribution.merge(status, count, Long::sum));
+        StatisticsOverall overall = new StatisticsOverall(overallWatchStatusDistribution);
         return new StatisticsResponse(
-                footballStatusDistribution,
-                footballMatchesPerCompetition,
-                recentMatches,
-                motorsportStatusDistribution,
-                motorsportRacesPerCompetition,
-                recentRaces
+                overall,
+                footballStatistics,
+                statisticsMotorsport
         );
     }
 

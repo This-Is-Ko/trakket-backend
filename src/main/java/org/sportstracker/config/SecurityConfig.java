@@ -3,6 +3,7 @@ package org.sportstracker.config;
 import lombok.RequiredArgsConstructor;
 import org.sportstracker.security.CustomJwtAuthenticationConverter;
 import org.sportstracker.security.JwtAuthenticationEntryPoint;
+import org.sportstracker.security.AccessTokenCookieFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,9 +15,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.OPTIONS;
 
 @Configuration
@@ -24,6 +25,7 @@ import static org.springframework.http.HttpMethod.OPTIONS;
 public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final AccessTokenCookieFilter accessTokenCookieFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -54,7 +56,7 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
+                .addFilterBefore(accessTokenCookieFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }
-
 }

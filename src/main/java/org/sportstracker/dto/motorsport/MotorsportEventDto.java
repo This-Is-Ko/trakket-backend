@@ -3,7 +3,6 @@ package org.sportstracker.dto.motorsport;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.sportstracker.enums.EventStatus;
-import org.sportstracker.enums.FootballCompetition;
 import org.sportstracker.enums.MotorsportCompetition;
 
 import java.time.LocalDateTime;

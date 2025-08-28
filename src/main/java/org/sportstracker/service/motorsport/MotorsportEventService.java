@@ -76,12 +76,10 @@ public class MotorsportEventService implements EventService<MotorsportEvent> {
     }
 
     public MotorsportEventsWithStatusResponse getEvents(User user, Integer page, Integer pageSize, MotorsportCompetition competition, EventStatus status, Boolean ascending) {
-        if (ascending == null) {
-            if (EventStatus.COMPLETED.equals(status)) {
-                ascending = false;
-            } else if (EventStatus.SCHEDULED.equals(status)) {
-                ascending = true;
-            }
+        if (ascending == null && EventStatus.COMPLETED.equals(status)) {
+            ascending = false;
+        } else if (ascending == null && EventStatus.SCHEDULED.equals(status)) {
+            ascending = true;
         }
 
         Page<MotorsportEvent> eventPage = getEventPage(page, pageSize, competition, status, ascending);

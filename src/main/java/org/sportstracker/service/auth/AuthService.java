@@ -1,9 +1,12 @@
 package org.sportstracker.service.auth;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.sportstracker.dto.auth.LoginRequest;
 import org.sportstracker.dto.auth.LoginResponse;
 import org.sportstracker.dto.auth.ResendOtpRequest;
+import org.sportstracker.dto.auth.UserInfoResponse;
 import org.sportstracker.dto.auth.UserSignupOtpChallengeResponse;
 import org.sportstracker.dto.auth.UserSignupRequest;
 import org.sportstracker.dto.auth.UserSignupResponse;
@@ -32,14 +35,23 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public LoginResponse authenticate(LoginRequest authRequest) {
+    public LoginResponse authenticate(LoginRequest authRequest, HttpServletResponse response) {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(authRequest.getEmail(), authRequest.getPassword());
         Authentication authentication = authenticationManager.authenticate(token);
 
         String jwtToken = jwtTokenService.generateToken(authentication);
         Long expiresAt = jwtTokenService.extractExpirationTime(jwtToken);
 
-        return new LoginResponse(jwtToken, authentication.getName(), expiresAt);
+        Cookie jwtCookie = new Cookie("access_token", jwtToken);
+        jwtCookie.setHttpOnly(true);
+//        jwtCookie.setSecure(true);
+        jwtCookie.setPath("/");
+        jwtCookie.setMaxAge((int) ((expiresAt - System.currentTimeMillis()) / 1000));
+        jwtCookie.setAttribute("SameSite", "Strict");
+
+        response.addCookie(jwtCookie);
+
+        return new LoginResponse(authentication.getName(), expiresAt);
     }
 
     @Transactional
@@ -101,5 +113,23 @@ public class AuthService {
         user.setVerified(true);
         userRepository.save(user);
         return new UserSignupResponse(user.getUsername());
+    }
+
+    public void logout(HttpServletResponse response) {
+        Cookie jwtCookie = new Cookie("access_token", null);
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setSecure(true);
+        jwtCookie.setPath("/");
+        jwtCookie.setMaxAge(0);
+        jwtCookie.setAttribute("SameSite", "Strict");
+        response.addCookie(jwtCookie);
+    }
+
+    public UserInfoResponse getUserInfo(Authentication authentication) {
+        User user = (User) authentication.getDetails();
+
+        return new UserInfoResponse(
+                user.getUsername()
+        );
     }
 }

@@ -31,6 +31,8 @@ public class JwtTokenService {
                 .issuer("self")
                 .issuedAt(now)
                 .expiresAt(now.plus(1, ChronoUnit.HOURS))
+                // TO test expiry
+//                .expiresAt(now.plusSeconds(2))
                 .subject(authentication.getName())
                 .claim("scope", scope)
                 .build();

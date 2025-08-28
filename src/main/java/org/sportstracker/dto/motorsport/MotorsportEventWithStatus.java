@@ -7,6 +7,6 @@ import org.sportstracker.enums.WatchedStatus;
 @Data
 @AllArgsConstructor
 public class MotorsportEventWithStatus {
-    private MotorsportEventDto event;
-    private WatchedStatus watchStatus;
+    private MotorsportEventDto details;
+    private WatchedStatus status;
 }
