@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SofascoreCountryDto {
-    private String name;   // "England"
-    private String alpha2; // "EN" (sometimes)
+    private String name;
+    private String alpha2;
 }

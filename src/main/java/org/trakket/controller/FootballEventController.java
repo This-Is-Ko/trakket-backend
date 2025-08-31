@@ -9,7 +9,7 @@ import org.trakket.enums.FootballCompetition;
 import org.trakket.model.FootballEvent;
 import org.trakket.model.FootballEventWatchStatus;
 import org.trakket.model.User;
-import org.trakket.service.FootballEventService;
+import org.trakket.service.football.FootballEventService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;

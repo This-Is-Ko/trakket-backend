@@ -43,7 +43,7 @@ public class RacesResponseDto {
         private Circuit Circuit;
 
         @JsonProperty("Results")
-        private List<Result> Results; // only when calling /results
+        private List<Result> Results;
     }
 
     @Data

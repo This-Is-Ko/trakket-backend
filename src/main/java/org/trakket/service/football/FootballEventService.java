@@ -1,4 +1,4 @@
-package org.trakket.service;
+package org.trakket.service.football;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.trakket.service.EventService;
 
 import java.time.LocalDateTime;
 import java.util.List;

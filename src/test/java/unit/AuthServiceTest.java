@@ -71,7 +71,6 @@ public class AuthServiceTest {
 
     @Test
     void authenticate_ShouldReturnLoginResponseAndSetCookie_WhenCredentialsValid() {
-        // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.getName()).thenReturn("testUser");

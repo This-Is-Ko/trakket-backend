@@ -29,6 +29,18 @@ public interface MotorsportEventWatchStatusRepository extends JpaRepository<Moto
            where ws.user = :user and ws.status <> :excluded
            group by e.competition
            """)
-    List<CompetitionCount> countWatchedByCompetition(@Param("user") User user,
-                                                                                        @Param("excluded") WatchedStatus excluded);
+    List<MotorsportCompetitionCount> countWatchedByCompetition(@Param("user") User user, @Param("excluded") WatchedStatus excluded);
+
+    @Query("""
+        SELECT me.circuitName AS circuitName, COUNT(ms) AS cnt
+        FROM MotorsportEventWatchStatus ms
+        JOIN ms.event me
+        WHERE ms.user = :user AND ms.status <> :excluded
+        GROUP BY me.circuitName
+        ORDER BY cnt DESC
+        """)
+    List<CircuitCount> countWatchedByCircuit(@Param("user") User user, @Param("excluded") WatchedStatus excluded);
+
+    @Query("SELECT COUNT(ms) FROM MotorsportEventWatchStatus ms WHERE ms.user = :user AND ms.status <> :excluded")
+    Long countWatchedByUser(@Param("user") User user, @Param("excluded") WatchedStatus excluded);
 }

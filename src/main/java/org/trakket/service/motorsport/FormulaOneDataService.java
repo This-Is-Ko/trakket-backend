@@ -4,15 +4,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.trakket.dto.motorsport.jolpicaf1.RacesResponseDto;
 import org.trakket.enums.EventStatus;
+import org.trakket.enums.ExternalMotorsportSource;
 import org.trakket.enums.MotorsportCompetition;
-import org.trakket.mapper.MotorsportEventMapper;
 import org.trakket.model.MotorsportEvent;
 import org.trakket.repository.MotorsportEventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.trakket.repository.MotorsportTeamRepository;
+import org.trakket.service.CountryCodeService;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Slf4j
@@ -22,8 +27,11 @@ public class FormulaOneDataService {
 
     private final WebClient webClient;
     private final MotorsportEventRepository eventRepository;
+    private final MotorsportTeamRepository motorsportTeamRepository;
+    private final CountryCodeService countryCodeService;
 
     private static final String BASE_URL = "https://api.jolpi.ca/ergast/f1";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
     /**
      * Initial season race schedule.
@@ -120,7 +128,7 @@ public class FormulaOneDataService {
                         Integer.parseInt(race.getRound())
                 ).orElse(null);
 
-        MotorsportEvent mappedEvent = MotorsportEventMapper.toEntity(race, true);
+        MotorsportEvent mappedEvent = toEntity(race, true);
 
         if (existingEvent != null) {
             if (!updateExisting || checkEventStatus && EventStatus.COMPLETED.equals(existingEvent.getStatus())) {
@@ -133,5 +141,62 @@ public class FormulaOneDataService {
         } else {
             eventRepository.save(mappedEvent);
         }
+    }
+
+    public MotorsportEvent toEntity(RacesResponseDto.Race race, boolean includeWinner) {
+        MotorsportEvent event = new MotorsportEvent();
+
+        event.setCompetition(MotorsportCompetition.FORMULA_ONE);
+        event.setStatus(EventStatus.SCHEDULED);
+        event.setExternalSource(ExternalMotorsportSource.JOLPICA_F1);
+        event.setLastUpdated(LocalDateTime.now());
+        event.setSeason(Integer.parseInt(race.getSeason()));
+        event.setRound(Integer.parseInt(race.getRound()));
+        event.setRaceName(race.getRaceName());
+        event.setCircuitName(race.getCircuit().getCircuitName());
+
+        if (race.getCircuit() != null && race.getCircuit().getLocation() != null) {
+            String countryName = race.getCircuit().getLocation().getCountry();
+            String loc = race.getCircuit().getLocation().getLocality() + ", " + countryName;
+            event.setLocation(loc);
+            String isoCode = countryCodeService.getCountryCode(countryName);
+            if (isoCode != null) {
+                event.setFlagUrl(String.format("https://flagcdn.com/%s.svg", isoCode.toLowerCase()));
+            }
+        }
+
+        event.setExternalLink(race.getUrl());
+
+        // Combine Date + Time
+        if (race.getDate() != null) {
+            String dateTimeStr = race.getDate();
+            if (race.getTime() != null) {
+                dateTimeStr += "T" + race.getTime();
+                event.setDateTime(LocalDateTime.parse(dateTimeStr, DATE_TIME_FORMATTER));
+            } else {
+                event.setDateTime(LocalDate.parse(dateTimeStr).atStartOfDay());
+            }
+        }
+
+        // Winner - for result api response
+        if (includeWinner && race.getResults() != null && !race.getResults().isEmpty()) {
+            RacesResponseDto.Result winnerResult = race.getResults()
+                    .stream()
+                    .filter(r -> "1".equals(r.getPosition()))
+                    .findFirst()
+                    .orElse(null);
+            if (winnerResult != null) {
+                String winner = winnerResult.getDriver().getGivenName() + " " +
+                        winnerResult.getDriver().getFamilyName();
+                event.setWinner(winner);
+                if (winnerResult.getConstructor() != null) {
+                    motorsportTeamRepository.findByName(winnerResult.getConstructor().getName())
+                            .ifPresent(event::setWinnerTeam);
+                }
+                event.setStatus(EventStatus.COMPLETED);
+            }
+        }
+
+        return event;
     }
 }

@@ -1,5 +1,7 @@
 package org.trakket.repository;
 
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.trakket.enums.ExternalFootballSource;
 import org.trakket.enums.MotorsportCompetition;
 import org.trakket.model.MotorsportEvent;
@@ -18,4 +20,6 @@ public interface MotorsportEventRepository extends JpaRepository<MotorsportEvent
             MotorsportCompetition competition, int season, int round
     );
 
+    @Query("SELECT COUNT(me) FROM MotorsportEvent me WHERE me.season = :season")
+    Long countRacesInSeason(@Param("season") Integer season);
 }

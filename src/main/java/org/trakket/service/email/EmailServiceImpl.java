@@ -1,4 +1,4 @@
-package org.trakket.service;
+package org.trakket.service.email;
 
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -28,7 +28,6 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
 
-            // "MyApp Support <sender@domain.com>"
             helper.setFrom(new InternetAddress(senderEmail, "Sports Watch Tracker"));
             helper.setTo(details.getRecipient());
             helper.setSubject(details.getSubject());

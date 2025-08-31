@@ -44,6 +44,7 @@ public class AuthService {
 
         Cookie jwtCookie = new Cookie("access_token", jwtToken);
         jwtCookie.setHttpOnly(true);
+        // Disabled for postman testing
 //        jwtCookie.setSecure(true);
         jwtCookie.setPath("/");
         jwtCookie.setMaxAge((int) ((expiresAt - System.currentTimeMillis()) / 1000));

@@ -9,5 +9,6 @@ import java.util.Map;
 public record StatisticsFootball(
         Map<WatchedStatus, Long> watchStatusDistribution,
         Map<String, Long> perCompetition,
-        List<FootballEventWithStatus> recentEvents
+        List<FootballEventWithStatus> recentEvents,
+        List<TeamStat> topTeams
 ) {}

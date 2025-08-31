@@ -1,4 +1,4 @@
-package org.trakket.service;
+package org.trakket.service.email;
 
 
 import org.trakket.model.EmailDetails;

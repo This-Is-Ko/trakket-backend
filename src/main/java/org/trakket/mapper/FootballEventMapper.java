@@ -17,9 +17,11 @@ public class FootballEventMapper {
                 event.getSubtitle(),
                 event.getHomeTeam().getId(),
                 event.getHomeTeam().getName(),
+                event.getHomeTeam().getLogoUrl(),
+                event.getHomeScore(),
                 event.getAwayTeam().getId(),
                 event.getAwayTeam().getName(),
-                event.getHomeScore(),
+                event.getAwayTeam().getLogoUrl(),
                 event.getAwayScore()
         );
     }

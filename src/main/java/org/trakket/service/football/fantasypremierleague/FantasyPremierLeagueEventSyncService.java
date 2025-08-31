@@ -6,6 +6,7 @@ import org.trakket.dto.football.fantasypremierleague.FixtureDto;
 import org.trakket.enums.EventStatus;
 import org.trakket.enums.ExternalFootballSource;
 import org.trakket.enums.FootballCompetition;
+import org.trakket.enums.Gender;
 import org.trakket.model.FootballEvent;
 import org.trakket.model.FootballTeam;
 import org.trakket.repository.FootballEventRepository;
@@ -87,10 +88,10 @@ public class FantasyPremierLeagueEventSyncService {
         // Team
         String homeTeamName = TEAM_ID_TO_NAME.get(dto.getTeamH());
         FootballTeam homeTeam = footballTeamRepository.findByName(homeTeamName)
-                .orElseGet(() -> footballTeamRepository.save(new FootballTeam(null, homeTeamName, homeTeamName, "England", null, null)));
+                .orElseGet(() -> footballTeamRepository.save(new FootballTeam(null, homeTeamName, homeTeamName, "England", null, null, Gender.M)));
         String awayTeamName = TEAM_ID_TO_NAME.get(dto.getTeamA());
         FootballTeam awayTeam = footballTeamRepository.findByName(homeTeamName)
-                .orElseGet(() -> footballTeamRepository.save(new FootballTeam(null, awayTeamName, awayTeamName, "England", null, null)));
+                .orElseGet(() -> footballTeamRepository.save(new FootballTeam(null, awayTeamName, awayTeamName, "England", null, null, Gender.M)));
 
         event.setHomeTeam(homeTeam);
         event.setAwayTeam(awayTeam);

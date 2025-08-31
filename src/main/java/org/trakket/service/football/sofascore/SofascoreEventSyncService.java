@@ -13,6 +13,7 @@ import org.trakket.dto.football.sofascore.SofascoreTeamDto;
 import org.trakket.enums.EventStatus;
 import org.trakket.enums.ExternalFootballSource;
 import org.trakket.enums.FootballCompetition;
+import org.trakket.enums.Gender;
 import org.trakket.model.FootballEvent;
 import org.trakket.model.FootballTeam;
 import org.trakket.repository.FootballEventRepository;
@@ -35,18 +36,22 @@ public class SofascoreEventSyncService {
     private final SofascoreClient client;
     private final FootballEventRepository footballEventRepository;
     private final FootballTeamRepository footballTeamRepository;
+    private final TeamLogoService teamLogoService;
 
     private final Map<FootballCompetition, SofascoreMetadata> competitionMapping = Map.ofEntries(
-            Map.entry(FootballCompetition.ENGLISH_PREMIER_LEAGUE, new SofascoreMetadata(17, 76986)),
-            Map.entry(FootballCompetition.UEFA_CHAMPIONS_LEAGUE, new SofascoreMetadata(7, null)),
-            Map.entry(FootballCompetition.LA_LIGA, new SofascoreMetadata(8, null)),
-            Map.entry(FootballCompetition.SERIE_A, new SofascoreMetadata(23, null)),
-            Map.entry(FootballCompetition.BUNDESLIGA, new SofascoreMetadata(35, null)),
-            Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227))
+            Map.entry(FootballCompetition.ENGLISH_PREMIER_LEAGUE, new SofascoreMetadata(17, 76986, Gender.M)),
+            Map.entry(FootballCompetition.UEFA_CHAMPIONS_LEAGUE, new SofascoreMetadata(7, null, Gender.M)),
+            Map.entry(FootballCompetition.LA_LIGA, new SofascoreMetadata(8, 77559, Gender.M)),
+            Map.entry(FootballCompetition.SERIE_A, new SofascoreMetadata(23, null, Gender.M)),
+            Map.entry(FootballCompetition.BUNDESLIGA, new SofascoreMetadata(35, null, Gender.M)),
+            Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227, Gender.F))
     );
 
-    public void syncEvents() {
-        syncRound(FootballCompetition.ENGLISH_PREMIER_LEAGUE, 3);
+    public void syncEvents() throws InterruptedException {
+        for (FootballCompetition competition : competitionMapping.keySet()) {
+            syncRound(competition, null);
+            Thread.sleep(10000);
+        }
     }
 
     /**
@@ -72,20 +77,20 @@ public class SofascoreEventSyncService {
         client.fetchRoundEvents(uniqueTournamentId, seasonId, round)
                 .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
                 // do DB work on boundedElastic
-                .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
+                .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition, metadata))
                         .subscribeOn(Schedulers.boundedElastic()))
-                .doOnNext(e -> log.info("Upserted event {}", e.getId()))
                 .doOnError(ex -> log.error("SofaScore sync error", ex))
                 .subscribe();
     }
 
     @Transactional
-    public FootballEvent upsertFromSofaEvent(SofascoreEventDto dto, FootballCompetition competition) {
+    public FootballEvent upsertFromSofaEvent(SofascoreEventDto dto, FootballCompetition competition, SofascoreMetadata metadata) {
         try {
             FootballEvent event = footballEventRepository
                     .findByExternalSourceAndExternalSourceId(ExternalFootballSource.SOFASCORE, dto.getId())
                     .map(existing -> updateEvent(existing, dto))
-                    .orElseGet(() -> createEvent(dto, competition));
+                    .orElseGet(() -> createEvent(dto, competition, metadata));
+            log.info("Upserted event {}", event.getId());
             return event;
         } catch (Exception ex) {
             log.error("Error adding/updating event {}", dto.getId(), ex);
@@ -93,7 +98,7 @@ public class SofascoreEventSyncService {
         }
     }
 
-    private FootballEvent createEvent(SofascoreEventDto dto, FootballCompetition competition) {
+    private FootballEvent createEvent(SofascoreEventDto dto, FootballCompetition competition, SofascoreMetadata metadata) {
         FootballEvent event = new FootballEvent();
 
         LocalDateTime dateTimeUtc = toUtc(dto.getStartTimestamp());
@@ -103,8 +108,8 @@ public class SofascoreEventSyncService {
         event.setCompetition(competition);
 
         // Resolve or create teams
-        FootballTeam home = resolveTeam(dto.getHomeTeam());
-        FootballTeam away = resolveTeam(dto.getAwayTeam());
+        FootballTeam home = resolveTeam(dto.getHomeTeam(), metadata);
+        FootballTeam away = resolveTeam(dto.getAwayTeam(), metadata);
         event.setHomeTeam(home);
         event.setAwayTeam(away);
 
@@ -155,19 +160,53 @@ public class SofascoreEventSyncService {
         return LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSeconds), ZoneOffset.UTC);
     }
 
-    private FootballTeam resolveTeam(SofascoreTeamDto dto) {
+    private FootballTeam resolveTeam(SofascoreTeamDto dto, SofascoreMetadata metadata) {
         if (dto == null) throw new IllegalArgumentException("Team payload missing");
+
         String name = Objects.requireNonNullElse(dto.getName(), "Unknown");
         String shortName = dto.getShortName() != null ? dto.getShortName() : name;
         String country = (dto.getCountry() != null && dto.getCountry().getName() != null)
                 ? dto.getCountry().getName()
                 : "Unknown";
 
-        // Try by name; if absent create. You can later extend to store SofaScore team id.
-        return footballTeamRepository.findByNameOrAlternative(name)
-                .orElseGet(() -> footballTeamRepository.save(
-                        new FootballTeam(null, name, shortName, country, null, null)
-                ));
+        return footballTeamRepository.findBySofascoreExternalId(dto.getId())
+                .map(existingTeam -> {
+                    // Check if logoUrl is missing
+                    if (existingTeam.getLogoUrl() == null || existingTeam.getLogoUrl().isEmpty()) {
+                        saveTeamLogo(existingTeam, dto);
+                    }
+                    return existingTeam;
+                })
+                .orElseGet(() -> {
+                    // Save team without logo first
+                    FootballTeam newTeam = new FootballTeam(
+                            null,
+                            name,
+                            shortName,
+                            country,
+                            null,
+                            null,
+                            metadata.getGender()
+                    );
+                    newTeam.setSofascoreExternalId(dto.getId());
+                    newTeam = footballTeamRepository.save(newTeam);
+
+                    saveTeamLogo(newTeam, dto);
+
+                    return newTeam;
+                });
+    }
+
+    private void saveTeamLogo(FootballTeam team, SofascoreTeamDto dto) {
+        // Download and upload logo using team ID
+        try {
+            String logoUrl = teamLogoService.downloadAndUploadLogo(team.getId(), dto.getId());
+            team.setLogoUrl(logoUrl);
+            team = footballTeamRepository.save(team);
+            log.info("Saved logo for team {}: {}", team.getName(), logoUrl);
+        } catch (Exception e) {
+            log.warn("Failed to download/upload logo for team {}: {}", team.getName(), e.getMessage());
+        }
     }
 
     private EventStatus mapStatus(SofascoreStatusDto status) {
@@ -177,14 +216,12 @@ public class SofascoreEventSyncService {
             case "notstarted": return EventStatus.SCHEDULED;
             case "inprogress": return EventStatus.IN_PROGRESS;
             case "finished":   return EventStatus.COMPLETED;
-            // Optional: handle "postponed", "canceled", "afterextra", "afterpenalties" if your enum supports them
             default:           return EventStatus.SCHEDULED;
         }
     }
 
     private String buildExternalLink(SofascoreEventDto dto) {
         if (dto.getSlug() == null || dto.getId() == null) return null;
-        // SofaScore event page pattern
         return "https://www.sofascore.com/" + dto.getSlug() + "/" + dto.getId();
     }
 

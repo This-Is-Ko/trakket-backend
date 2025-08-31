@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SofaScoreDto {
-    private Integer current;     // live/final score
+    private Integer current;
 }

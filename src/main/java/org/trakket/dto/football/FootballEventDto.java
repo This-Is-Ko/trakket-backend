@@ -17,8 +17,10 @@ public record FootballEventDto(
         String subtitle,
         Long homeTeamId,
         String homeTeamName,
+        String homeTeamLogoUrl,
+        Integer homeScore,
         Long awayTeamId,
         String awayTeamName,
-        Integer homeScore,
+        String awayTeamLogoUrl,
         Integer awayScore
 ) {}

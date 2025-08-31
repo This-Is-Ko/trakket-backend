@@ -9,5 +9,7 @@ import java.util.Map;
 public record StatisticsMotorsport(
         Map<WatchedStatus, Long> watchStatusDistribution,
         Map<String, Long> watchedEventsPerCompetition,
-        List<MotorsportEventWithStatus> recentEvents
+        List<MotorsportEventWithStatus> recentEvents,
+        List<CircuitStat> topCircuits,
+        Map<Integer, Double> motorsportSeasonCoverage
 ) {}

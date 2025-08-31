@@ -42,6 +42,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error while sending OTP. Please try again later."));
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, String>> handleUnauthorizedException() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Please login to continue."));
+    }
+
     // fallback for unexpected cases
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {

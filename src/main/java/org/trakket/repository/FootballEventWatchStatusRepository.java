@@ -35,7 +35,45 @@ public interface FootballEventWatchStatusRepository extends JpaRepository<Footba
            where ws.user = :user and ws.status <> :excluded
            group by e.competition
            """)
-    List<CompetitionCount> countWatchedByCompetition(@Param("user") User user,
-                                                     @Param("excluded") WatchedStatus excluded);
+    List<FootballCompetitionCount> countWatchedByCompetition(@Param("user") User user,
+                                                             @Param("excluded") WatchedStatus excluded);
+
+    // Count of watched events by home team
+    @Query("""
+        SELECT fe.homeTeam.id AS teamId, fe.homeTeam.name AS teamName, COUNT(ws) AS cnt
+        FROM FootballEventWatchStatus ws
+        JOIN ws.event fe
+        WHERE ws.user = :user AND ws.status <> :excluded
+        GROUP BY fe.homeTeam.id, fe.homeTeam.name
+        """)
+    List<TeamCount> countWatchedHomeTeams(@Param("user") User user, @Param("excluded") WatchedStatus excluded);
+
+    // Count of watched events by away team
+    @Query("""
+        SELECT fe.awayTeam.id AS teamId, fe.awayTeam.name AS teamName, COUNT(ws) AS cnt
+        FROM FootballEventWatchStatus ws
+        JOIN ws.event fe
+        WHERE ws.user = :user AND ws.status <> :excluded
+        GROUP BY fe.awayTeam.id, fe.awayTeam.name
+        """)
+    List<TeamCount> countWatchedAwayTeams(@Param("user") User user, @Param("excluded") WatchedStatus excluded);
+
+    // Count watched matches for a given team in a given season (season type may be String or integer in your model)
+    @Query("""
+        SELECT COUNT(ws)
+        FROM FootballEventWatchStatus ws
+        JOIN ws.event fe
+        WHERE ws.user = :user AND ws.status <> :excluded
+          AND (fe.homeTeam.id = :teamId OR fe.awayTeam.id = :teamId)
+        """)
+    Long countWatchedMatchesForTeam(
+            @Param("user") User user,
+            @Param("teamId") Long teamId,
+            @Param("excluded") WatchedStatus excluded
+    );
+
+    // Count of watched events (helper)
+    @Query("SELECT COUNT(ws) FROM FootballEventWatchStatus ws WHERE ws.user = :user AND ws.status <> :excluded")
+    Long countWatchedByUser(@Param("user") User user, @Param("excluded") WatchedStatus excluded);
 
 }

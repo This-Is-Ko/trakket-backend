@@ -22,4 +22,5 @@ public class MotorsportEventDto {
     private String raceName;
     private String circuitName;
     private String winner;
+    private String flagUrl;
 }

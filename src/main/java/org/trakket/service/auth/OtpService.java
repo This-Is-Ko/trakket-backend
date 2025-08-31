@@ -8,7 +8,7 @@ import org.trakket.exception.OtpSendException;
 import org.trakket.model.Otp;
 import org.trakket.model.User;
 import org.trakket.repository.OtpRepository;
-import org.trakket.service.EmailService;
+import org.trakket.service.email.EmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;

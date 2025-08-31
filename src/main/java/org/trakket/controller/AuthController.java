@@ -11,6 +11,7 @@ import org.trakket.dto.auth.UserSignupOtpChallengeResponse;
 import org.trakket.dto.auth.UserSignupResponse;
 import org.trakket.dto.auth.UserSignupRequest;
 import org.trakket.dto.auth.VerifyOtpRequest;
+import org.trakket.exception.UnauthorizedException;
 import org.trakket.service.auth.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,7 +59,7 @@ public class AuthController {
     @GetMapping("/me")
     public UserInfoResponse userInfo(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+            throw new UnauthorizedException();
         }
 
         return authService.getUserInfo(authentication);

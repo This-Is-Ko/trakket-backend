@@ -6,16 +6,16 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SofascoreEventDto {
-    private Long id;                       // SofaScore event id
-    private String slug;                   // for external link
-    private Long startTimestamp;           // epoch seconds
-    private SofascoreStatusDto status;          // finished / inprogress / notstarted
-    private SofascoreRoundInfoDto roundInfo;    // round number
+    private Long id;
+    private String slug;
+    private Long startTimestamp;
+    private SofascoreStatusDto status;
+    private SofascoreRoundInfoDto roundInfo;
     private SofascoreTeamDto homeTeam;
     private SofascoreTeamDto awayTeam;
-    private SofaScoreDto homeScore;        // may be null before start
-    private SofaScoreDto awayScore;        // may be null before start
-    private SofascoreUniqueTournamentDto uniqueTournament; // contains tournament id
-    private SofascoreSeasonDto season;          // contains season id
+    private SofaScoreDto homeScore;
+    private SofaScoreDto awayScore;
+    private SofascoreUniqueTournamentDto uniqueTournament;
+    private SofascoreSeasonDto season;
 }
 

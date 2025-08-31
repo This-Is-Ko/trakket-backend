@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SofascoreStatusDto {
-    private Integer code;      // e.g. 100 for ended
-    private String description; // "Ended"
-    private String type;       // "finished" | "inprogress" | "notstarted" | others
+    private Integer code;
+    private String description;
+    private String type;
 }

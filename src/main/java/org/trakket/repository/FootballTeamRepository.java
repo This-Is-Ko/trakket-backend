@@ -22,4 +22,6 @@ public interface FootballTeamRepository extends JpaRepository<FootballTeam, Long
             nativeQuery = true)
     Optional<FootballTeam> findByNameOrAlternative(@Param("name") String name);
 
+    Optional<FootballTeam> findBySofascoreExternalId(Long sofascoreExternalId);
+
 }

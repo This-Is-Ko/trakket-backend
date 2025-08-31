@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SofascoreSeasonDto {
-    private Long id;      // e.g. 76986
-    private String name;  // "Premier League 25/26"
-    private String year;  // "25/26"
+    private Long id;
+    private String name;
+    private String year;
 }

@@ -19,7 +19,7 @@ import java.time.Duration;
 @Configuration
 public class WebClientConfig {
 
-    @Value("${webclient.max-memory-bytes:4194304}") // 4MB default
+    @Value("${webclient.max-memory-bytes:4194304}")
     private int maxMemoryBytes;
 
     @Value("${webclient.connect-timeout-ms:5000}")
@@ -102,6 +102,4 @@ public class WebClientConfig {
                 .baseUrl("https://fantasy.premierleague.com/api")
                 .build();
     }
-
-    // Add more per-source beans here when needed (e.g., @Bean public WebClient anotherSourceWebClient(...))
 }

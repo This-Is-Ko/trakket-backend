@@ -5,5 +5,6 @@ import org.trakket.enums.WatchedStatus;
 import java.util.Map;
 
 public record StatisticsOverall (
-        Map<WatchedStatus, Long> watchStatusDistribution
+        Map<WatchedStatus, Long> watchStatusDistribution,
+        Map<String, Long> sportsMix
 ) {}

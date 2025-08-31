@@ -42,14 +42,17 @@ public class MotorsportEvent extends Event {
     @Column(length = 100)
     private String winner;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "winner_team_id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "winner_team_id")
     private MotorsportTeam winnerTeam;
 
     @Enumerated(EnumType.STRING)
     private ExternalMotorsportSource externalSource;
 
     private Long externalSourceId;
+
+    @Column(length = 200)
+    private String flagUrl;
 
     @Override
     public String getTitle() {
@@ -67,6 +70,9 @@ public class MotorsportEvent extends Event {
                 !this.season.equals(other.getSeason()) ||
                 !this.round.equals(other.getRound())) {
             throw new IllegalArgumentException("Cannot update result for different race");
+        }
+        if (flagUrl == null) {
+            this.flagUrl = other.getFlagUrl();
         }
         this.status = other.getStatus();
         this.winner = other.getWinner();
