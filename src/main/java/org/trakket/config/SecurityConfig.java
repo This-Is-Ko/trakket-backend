@@ -1,6 +1,7 @@
 package org.trakket.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.config.Customizer;
 import org.trakket.security.CustomJwtAuthenticationConverter;
 import org.trakket.security.JwtAuthenticationEntryPoint;
 import org.trakket.security.AccessTokenCookieFilter;
@@ -44,6 +45,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, CustomJwtAuthenticationConverter converter) throws Exception {
         return http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(OPTIONS, "/**").permitAll();

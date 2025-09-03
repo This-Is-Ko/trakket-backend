@@ -81,15 +81,12 @@ public class StatisticsService {
                 .map(ws -> new MotorsportEventWithStatus(MotorsportEventMapper.toDto(ws.getEvent()), ws.getStatus()))
                 .toList();
 
-        // New motorsport stats
-        List<CircuitStat> topCircuits = getTopWatchedCircuits(user, 10);
         Map<Integer, Double> motorsportSeasonCoverage = getMotorsportSeasonCoverage(user);
 
         StatisticsMotorsport statisticsMotorsport = new StatisticsMotorsport(
                 motorsportStatusDistribution,
                 motorsportRacesPerCompetition,
                 recentRaces,
-                null,
                 motorsportSeasonCoverage
         );
 
