@@ -128,7 +128,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.trakket.TrakketApplication</mainClass>
+                            <mainClass>org.trakket.TrakketApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
