@@ -7,7 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.trakket.client.SofascoreClient;
 import org.trakket.dto.football.sofascore.SofascoreEventDto;
 import org.trakket.dto.football.sofascore.SofascoreMetadata;
+import org.trakket.dto.football.sofascore.SofascoreRoundInfoDto;
 import org.trakket.dto.football.sofascore.SofascoreRoundsResponse;
+import org.trakket.dto.football.sofascore.SofascoreSeasonsResponse;
 import org.trakket.dto.football.sofascore.SofascoreStatusDto;
 import org.trakket.dto.football.sofascore.SofascoreTeamDto;
 import org.trakket.enums.EventStatus;
@@ -27,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -40,17 +43,80 @@ public class SofascoreEventSyncService {
 
     private final Map<FootballCompetition, SofascoreMetadata> competitionMapping = Map.ofEntries(
             Map.entry(FootballCompetition.ENGLISH_PREMIER_LEAGUE, new SofascoreMetadata(17, 76986, Gender.M)),
-            Map.entry(FootballCompetition.UEFA_CHAMPIONS_LEAGUE, new SofascoreMetadata(7, null, Gender.M)),
+            Map.entry(FootballCompetition.FA_CUP, new SofascoreMetadata(19, 67958, Gender.M)),
+            Map.entry(FootballCompetition.EFL_CUP, new SofascoreMetadata(21, 77500, Gender.M)),
+            Map.entry(FootballCompetition.UEFA_CHAMPIONS_LEAGUE, new SofascoreMetadata(7, 76953, Gender.M)),
+            Map.entry(FootballCompetition.UEFA_EUROPA_LEAGUE, new SofascoreMetadata(679, 76984, Gender.M)),
             Map.entry(FootballCompetition.LA_LIGA, new SofascoreMetadata(8, 77559, Gender.M)),
-            Map.entry(FootballCompetition.SERIE_A, new SofascoreMetadata(23, null, Gender.M)),
-            Map.entry(FootballCompetition.BUNDESLIGA, new SofascoreMetadata(35, null, Gender.M)),
-            Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227, Gender.F))
+            Map.entry(FootballCompetition.SERIE_A, new SofascoreMetadata(23, 76457, Gender.M)),
+            Map.entry(FootballCompetition.BUNDESLIGA, new SofascoreMetadata(35, 77333, Gender.M)),
+            Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227, Gender.F)),
+            Map.entry(FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE, new SofascoreMetadata(696, 77328, Gender.F))
     );
+
+    /**
+     * Initialise/sync a competition with all events in the latest season
+     */
+    public void initCompetition(FootballCompetition competition) {
+        SofascoreMetadata metadata = getCompetitionMetadata(competition);
+        Integer uniqueTournamentId = metadata.getCompetitionId();
+        if (uniqueTournamentId == null) {
+            throw new IllegalArgumentException("Missing competition id for: " + competition);
+        }
+
+        // Fetch seasons and take the first (latest) season id
+        SofascoreSeasonsResponse seasonsResponse = client.fetchSeasons(uniqueTournamentId).block();
+        if (seasonsResponse == null || seasonsResponse.getSeasons() == null || seasonsResponse.getSeasons().isEmpty()) {
+            throw new RuntimeException("No seasons returned for tournamentId " + uniqueTournamentId + " (" + competition + ")");
+        }
+        SofascoreSeasonsResponse.SofascoreSeasonDto latestSeason = seasonsResponse.getSeasons().get(0);
+        Integer seasonId = latestSeason.getId();
+        log.info("Initializing competition {} using latest season id {}, {}", competition, seasonId, latestSeason.getYear());
+
+        // Fetch rounds for season
+        SofascoreRoundsResponse roundsResponse = client.fetchRounds(uniqueTournamentId, seasonId).block();
+        if (roundsResponse == null || roundsResponse.getRounds() == null || roundsResponse.getRounds().isEmpty()) {
+            throw new RuntimeException("No rounds found for tournamentId " + uniqueTournamentId + " season " + seasonId);
+        }
+
+        // Loop over every round and fetch + upsert events
+        for (SofascoreRoundInfoDto roundInfo : roundsResponse.getRounds()) {
+            Integer roundNumber = roundInfo != null ? roundInfo.getRound() : null;
+            if (roundNumber == null) continue;
+
+            log.info("Fetching events for {} season {} round {}", competition, seasonId, roundNumber);
+
+            client.fetchRoundEvents(uniqueTournamentId, seasonId, roundNumber)
+                    .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
+                    .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition, metadata))
+                            .subscribeOn(Schedulers.boundedElastic()))
+                    .doOnError(ex -> log.error("SofaScore init error for competition " + competition + " round " + roundNumber, ex))
+                    .subscribe();
+
+            // Sleep
+            try {
+                long sleepMs = ThreadLocalRandom.current().nextLong(2000, 6001);
+                Thread.sleep(sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Interrupted while initCompetition sleeping between rounds", e);
+            }
+        }
+
+        log.info("Finished initializing/syncing competition {} for latest season {}", competition, latestSeason.getYear());
+    }
 
     public void syncEvents() throws InterruptedException {
         for (FootballCompetition competition : competitionMapping.keySet()) {
             syncRound(competition, null);
-            Thread.sleep(10000);
+            // Sleep
+            try {
+                long sleepMs = ThreadLocalRandom.current().nextLong(2000, 6001);
+                Thread.sleep(sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Interrupted while syncEvents sleeping between competition", e);
+            }
         }
     }
 

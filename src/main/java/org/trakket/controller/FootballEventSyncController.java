@@ -23,7 +23,6 @@ public class FootballEventSyncController implements EventSyncController {
     @GetMapping
     public ResponseEntity<String> syncEvents() {
         try {
-//            fantasyPremierLeagueEventSyncService.syncEvents();
             sofascoreEventSyncService.syncEvents();
             return ResponseEntity.ok("Events synced successfully");
         } catch (Exception e) {
@@ -34,13 +33,25 @@ public class FootballEventSyncController implements EventSyncController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/sofascore")
     public ResponseEntity<String> syncEventsWithSofascore(
-            @RequestParam(name = "competition", required = true) FootballCompetition competition,
+            @RequestParam(name = "competition") FootballCompetition competition,
             @RequestParam(name = "round", required = false) Integer round) {
         try {
             sofascoreEventSyncService.syncRound(competition, round);
             return ResponseEntity.ok("Events synced successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error syncing events: " + e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/sofascore/competition/init")
+    public ResponseEntity<String> initCompetitionEventsWithSofascore(
+            @RequestParam(name = "competition") FootballCompetition competition) {
+        try {
+            sofascoreEventSyncService.initCompetition(competition);
+            return ResponseEntity.ok("Competition events initialized successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error initializing competition events: " + e.getMessage());
         }
     }
 }

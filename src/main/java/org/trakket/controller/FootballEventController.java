@@ -28,8 +28,10 @@ public class FootballEventController {
             @RequestParam(name = "pageSize", required = false) Integer pageSize,
             @RequestParam(name = "competition", required = false) FootballCompetition competition,
             @RequestParam(name = "status", required = false) EventStatus status,
-            @RequestParam(name = "ascending ", required = false) Boolean ascending) {
-        return footballEventService.getEvents(null, page, pageSize, competition, status, ascending);
+            @RequestParam(name = "ascending ", required = false) Boolean ascending,
+            @RequestParam(name = "teamId", required = false) Long teamId,
+            @RequestParam(name = "round", required = false) Integer round) {
+        return footballEventService.getEvents(null, page, pageSize, competition, status, ascending, teamId, round);
     }
 
     @GetMapping("/{id}")
@@ -56,10 +58,12 @@ public class FootballEventController {
             @RequestParam(name = "pageSize", required = false) Integer pageSize,
             @RequestParam(name = "competition", required = false) FootballCompetition competition,
             @RequestParam(name = "status", required = false) EventStatus status,
-            @RequestParam(name = "ascending ", required = false) Boolean ascending) {
+            @RequestParam(name = "ascending ", required = false) Boolean ascending,
+            @RequestParam(name = "teamId", required = false) Long teamId,
+            @RequestParam(name = "round", required = false) Integer round) {
 
         User user = (User) authentication.getDetails();
-        return footballEventService.getEvents(user, page, pageSize, competition, status, ascending);
+        return footballEventService.getEvents(user, page, pageSize, competition, status, ascending, teamId, round);
     }
 
     @GetMapping("/status")

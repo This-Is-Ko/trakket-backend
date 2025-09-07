@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.trakket.dto.football.sofascore.SofascoreEventsResponse;
 import org.trakket.dto.football.sofascore.SofascoreRoundsResponse;
+import org.trakket.dto.football.sofascore.SofascoreSeasonsResponse;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -40,5 +41,17 @@ public class SofascoreClient {
                 .uri(path)
                 .retrieve()
                 .bodyToMono(SofascoreRoundsResponse.class);
+    }
+
+    public Mono<SofascoreSeasonsResponse> fetchSeasons(int uniqueTournamentId) {
+        String path = String.format(
+                "/api/v1/unique-tournament/%d/seasons",
+                uniqueTournamentId
+        );
+        return sofascoreWebClient
+                .get()
+                .uri(path)
+                .retrieve()
+                .bodyToMono(SofascoreSeasonsResponse.class);
     }
 }

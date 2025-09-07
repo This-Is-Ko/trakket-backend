@@ -45,13 +45,22 @@ public class FootballEventService implements EventService<FootballEvent> {
         return footballEventRepository.findAll();
     }
 
-    private Page<FootballEvent> getEventPage(Integer page, Integer pageSize, FootballCompetition competition, EventStatus status,
-                                             Boolean ascending) {
+    private Page<FootballEvent> getEventPage(
+            Integer page,
+            Integer pageSize,
+            FootballCompetition competition,
+            EventStatus status,
+            Boolean ascending,
+            Long teamId,
+            Integer round
+    ) {
         Sort sort = (ascending != null && ascending)
                 ? Sort.by("dateTime").ascending()
                 : Sort.by("dateTime").descending();
 
-        Pageable pageable = PageRequest.of(page != null ? page : 0, pageSize != null ? pageSize : 10, sort);
+        Pageable pageable = PageRequest.of(page != null ? page : 0,
+                pageSize != null ? pageSize : 10,
+                sort);
 
         Specification<FootballEvent> spec = Specification.unrestricted();
 
@@ -63,60 +72,69 @@ public class FootballEventService implements EventService<FootballEvent> {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
         }
 
+        if (round != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("round"), round));
+        }
+
+        if (teamId != null) {
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.equal(root.get("homeTeam").get("id"), teamId),
+                    cb.equal(root.get("awayTeam").get("id"), teamId)
+            ));
+        }
+
         return footballEventRepository.findAll(spec, pageable);
     }
 
-    public FootballEventsWithStatusResponse getEvents(User user, Integer page, Integer pageSize, FootballCompetition competition, EventStatus status, Boolean ascending) {
+    public FootballEventsWithStatusResponse getEvents(
+            User user,
+            Integer page,
+            Integer pageSize,
+            FootballCompetition competition,
+            EventStatus status,
+            Boolean ascending,
+            Long teamId,
+            Integer round
+    ) {
         if (ascending == null && EventStatus.COMPLETED.equals(status)) {
             ascending = false;
         } else if (ascending == null && EventStatus.SCHEDULED.equals(status)) {
             ascending = true;
         }
 
-        Page<FootballEvent> eventPage = getEventPage(page, pageSize, competition, status, ascending);
+        Page<FootballEvent> eventPage = getEventPage(page, pageSize, competition, status, ascending, teamId, round);
 
         FootballEventsWithStatusResponse response = new FootballEventsWithStatusResponse();
-
-        // Populate pagination details
         response.setPageNumber(eventPage.getNumber());
         response.setPageSize(eventPage.getSize());
         response.setTotalElements(eventPage.getTotalElements());
         response.setLast(eventPage.isLast());
 
         if (user == null) {
-            // No user context so return default
             response.setEvents(eventPage.stream()
-                    .map(event -> {
-                        FootballEventDto dto = FootballEventMapper.toDto(event);
-                        return new FootballEventWithStatus(dto, WatchedStatus.UNWATCHED);
-                    })
+                    .map(event -> new FootballEventWithStatus(FootballEventMapper.toDto(event), WatchedStatus.UNWATCHED))
                     .toList());
         } else {
-            // Get all event IDs in the page
             List<Long> eventIds = eventPage.stream()
                     .map(FootballEvent::getId)
                     .toList();
 
-            // Map eventId -> WatchedStatus
             Map<Long, WatchedStatus> statusMap = watchStatusRepository.findByUserAndEventIdIn(user, eventIds).stream()
                     .collect(Collectors.toMap(
                             ws -> ws.getEvent().getId(),
                             FootballEventWatchStatus::getStatus
                     ));
 
-            // Build response using map
             response.setEvents(eventPage.stream()
                     .map(event -> {
-                        FootballEventDto dto = FootballEventMapper.toDto(event);
-                        WatchedStatus statusEnum = statusMap.getOrDefault(event.getId(), WatchedStatus.UNWATCHED);
-                        return new FootballEventWithStatus(dto, statusEnum);
+                        WatchedStatus watched = statusMap.getOrDefault(event.getId(), WatchedStatus.UNWATCHED);
+                        return new FootballEventWithStatus(FootballEventMapper.toDto(event), watched);
                     })
                     .toList());
         }
 
         return response;
     }
-
 
     @Override
     public FootballEvent saveEvent(FootballEvent event) {
