@@ -11,6 +11,7 @@ import org.trakket.dto.auth.LoginRequest;
 import org.trakket.dto.auth.LoginResponse;
 import org.trakket.dto.auth.UserSignupOtpChallengeResponse;
 import org.trakket.dto.auth.UserSignupRequest;
+import org.trakket.exception.UserAlreadyExistsException;
 import org.trakket.model.User;
 import org.trakket.repository.UserRepository;
 import org.trakket.service.auth.AuthService;
@@ -19,6 +20,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.trakket.service.auth.OtpService;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -50,6 +52,9 @@ public class AuthServiceTest {
 
     @InjectMocks
     private AuthService authService;
+
+    @Mock
+    private OtpService otpService;
 
     private LoginRequest loginRequest;
 
@@ -129,10 +134,10 @@ public class AuthServiceTest {
         when(userRepository.existsByUsername("newUser")).thenReturn(true);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UserAlreadyExistsException exception = assertThrows(UserAlreadyExistsException.class,
                 () -> authService.signup(signupRequest));
 
-        assertEquals("Username already taken", exception.getMessage());
+        assertEquals("Username already taken.", exception.getMessage());
 
         verify(userRepository, times(1)).existsByUsername("newUser");
         verify(userRepository, never()).save(any());
