@@ -42,10 +42,10 @@ public class EmailServiceImpl implements EmailService {
     }
 
     public void sendSignUpOtpMail(String recipientEmail, String username, String otp) {
-        String subject = "Sports Watch Tracker - Verification Code";
+        String subject = "Trakket Sign Up - Verification Code";
         String body = String.format(
                 "Hello %s,\n\n" +
-                        "Thank you for signing up to Sports Watch Tracker.\n\n" +
+                        "Thank you for signing up to Trakket.\n\n" +
                         "Your One-Time Password (OTP) is: %s\n\n" +
                         "Please enter this code on the website to complete your registration.\n\n" +
                         "If you did not sign up, please ignore this email.\n\n" +
