@@ -36,7 +36,7 @@ public class FantasyPremierLeagueEventSyncService {
             Map.entry(4, "Bournemouth"),
             Map.entry(5, "Brentford"),
             Map.entry(6, "Brighton"),
-            Map.entry(7, "Chelsea"),
+            Map.entry(7, "Manchester United"),
             Map.entry(8, "Crystal Palace"),
             Map.entry(9, "Everton"),
             Map.entry(10, "Fulham"),
