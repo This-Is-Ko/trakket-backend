@@ -10,6 +10,5 @@ public class SofascoreMetadata {
 
     private Integer competitionId;
     private Integer seasonId;
-    private Gender gender;
 
 }

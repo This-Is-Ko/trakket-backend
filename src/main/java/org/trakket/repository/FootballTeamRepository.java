@@ -1,13 +1,11 @@
 package org.trakket.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.trakket.enums.ExternalFootballSource;
-import org.trakket.model.FootballEvent;
 import org.trakket.model.FootballTeam;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface FootballTeamRepository extends JpaRepository<FootballTeam, Long> {
@@ -23,5 +21,8 @@ public interface FootballTeamRepository extends JpaRepository<FootballTeam, Long
     Optional<FootballTeam> findByNameOrAlternative(@Param("name") String name);
 
     Optional<FootballTeam> findBySofascoreExternalId(Long sofascoreExternalId);
+
+    // Return in alphabetical order on name
+    List<FootballTeam> findAllByOrderByNameAsc();
 
 }

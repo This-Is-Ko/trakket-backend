@@ -42,16 +42,17 @@ public class SofascoreEventSyncService {
     private final TeamLogoService teamLogoService;
 
     private final Map<FootballCompetition, SofascoreMetadata> competitionMapping = Map.ofEntries(
-            Map.entry(FootballCompetition.ENGLISH_PREMIER_LEAGUE, new SofascoreMetadata(17, 76986, Gender.M)),
-            Map.entry(FootballCompetition.FA_CUP, new SofascoreMetadata(19, 67958, Gender.M)),
-            Map.entry(FootballCompetition.EFL_CUP, new SofascoreMetadata(21, 77500, Gender.M)),
-            Map.entry(FootballCompetition.UEFA_CHAMPIONS_LEAGUE, new SofascoreMetadata(7, 76953, Gender.M)),
-            Map.entry(FootballCompetition.UEFA_EUROPA_LEAGUE, new SofascoreMetadata(679, 76984, Gender.M)),
-            Map.entry(FootballCompetition.LA_LIGA, new SofascoreMetadata(8, 77559, Gender.M)),
-            Map.entry(FootballCompetition.SERIE_A, new SofascoreMetadata(23, 76457, Gender.M)),
-            Map.entry(FootballCompetition.BUNDESLIGA, new SofascoreMetadata(35, 77333, Gender.M)),
-            Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227, Gender.F)),
-            Map.entry(FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE, new SofascoreMetadata(696, 77328, Gender.F))
+            Map.entry(FootballCompetition.ENGLISH_PREMIER_LEAGUE, new SofascoreMetadata(17, 76986)),
+            Map.entry(FootballCompetition.FA_CUP, new SofascoreMetadata(19, 67958)),
+            Map.entry(FootballCompetition.EFL_CUP, new SofascoreMetadata(21, 77500)),
+            Map.entry(FootballCompetition.UEFA_CHAMPIONS_LEAGUE, new SofascoreMetadata(7, 76953)),
+            Map.entry(FootballCompetition.UEFA_EUROPA_LEAGUE, new SofascoreMetadata(679, 76984)),
+            Map.entry(FootballCompetition.LA_LIGA, new SofascoreMetadata(8, 77559)),
+            Map.entry(FootballCompetition.SERIE_A, new SofascoreMetadata(23, 76457)),
+            Map.entry(FootballCompetition.BUNDESLIGA, new SofascoreMetadata(35, 77333)),
+            Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227)),
+            Map.entry(FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE, new SofascoreMetadata(696, 77328)),
+            Map.entry(FootballCompetition.NATIONAL_WOMENS_SOCCER_LEAGUE, new SofascoreMetadata(1690, 71412))
     );
 
     /**
@@ -88,7 +89,7 @@ public class SofascoreEventSyncService {
 
             client.fetchRoundEvents(uniqueTournamentId, seasonId, roundNumber)
                     .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
-                    .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition, metadata))
+                    .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
                             .subscribeOn(Schedulers.boundedElastic()))
                     .doOnError(ex -> log.error("SofaScore init error for competition " + competition + " round " + roundNumber, ex))
                     .subscribe();
@@ -143,19 +144,19 @@ public class SofascoreEventSyncService {
         client.fetchRoundEvents(uniqueTournamentId, seasonId, round)
                 .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
                 // do DB work on boundedElastic
-                .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition, metadata))
+                .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
                         .subscribeOn(Schedulers.boundedElastic()))
                 .doOnError(ex -> log.error("SofaScore sync error", ex))
                 .subscribe();
     }
 
     @Transactional
-    public FootballEvent upsertFromSofaEvent(SofascoreEventDto dto, FootballCompetition competition, SofascoreMetadata metadata) {
+    public FootballEvent upsertFromSofaEvent(SofascoreEventDto dto, FootballCompetition competition) {
         try {
             FootballEvent event = footballEventRepository
                     .findByExternalSourceAndExternalSourceId(ExternalFootballSource.SOFASCORE, dto.getId())
                     .map(existing -> updateEvent(existing, dto))
-                    .orElseGet(() -> createEvent(dto, competition, metadata));
+                    .orElseGet(() -> createEvent(dto, competition));
             log.info("Upserted event {}", event.getId());
             return event;
         } catch (Exception ex) {
@@ -164,7 +165,7 @@ public class SofascoreEventSyncService {
         }
     }
 
-    private FootballEvent createEvent(SofascoreEventDto dto, FootballCompetition competition, SofascoreMetadata metadata) {
+    private FootballEvent createEvent(SofascoreEventDto dto, FootballCompetition competition) {
         FootballEvent event = new FootballEvent();
 
         LocalDateTime dateTimeUtc = toUtc(dto.getStartTimestamp());
@@ -174,8 +175,8 @@ public class SofascoreEventSyncService {
         event.setCompetition(competition);
 
         // Resolve or create teams
-        FootballTeam home = resolveTeam(dto.getHomeTeam(), metadata);
-        FootballTeam away = resolveTeam(dto.getAwayTeam(), metadata);
+        FootballTeam home = resolveTeam(dto.getHomeTeam(), competition.getGender());
+        FootballTeam away = resolveTeam(dto.getAwayTeam(), competition.getGender());
         event.setHomeTeam(home);
         event.setAwayTeam(away);
 
@@ -226,7 +227,7 @@ public class SofascoreEventSyncService {
         return LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSeconds), ZoneOffset.UTC);
     }
 
-    private FootballTeam resolveTeam(SofascoreTeamDto dto, SofascoreMetadata metadata) {
+    private FootballTeam resolveTeam(SofascoreTeamDto dto, Gender gender) {
         if (dto == null) throw new IllegalArgumentException("Team payload missing");
 
         String name = Objects.requireNonNullElse(dto.getName(), "Unknown");
@@ -252,7 +253,7 @@ public class SofascoreEventSyncService {
                             country,
                             null,
                             null,
-                            metadata.getGender()
+                            gender
                     );
                     newTeam.setSofascoreExternalId(dto.getId());
                     newTeam = footballTeamRepository.save(newTeam);

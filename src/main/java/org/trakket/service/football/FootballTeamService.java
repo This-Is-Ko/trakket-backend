@@ -14,7 +14,7 @@ public class FootballTeamService {
     private final FootballTeamRepository footballTeamRepository;
 
     public List<FootballTeam> getAllTeams() {
-        return footballTeamRepository.findAll();
+        return footballTeamRepository.findAllByOrderByNameAsc();
     }
 }
 
