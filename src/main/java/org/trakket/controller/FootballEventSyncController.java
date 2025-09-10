@@ -44,6 +44,17 @@ public class FootballEventSyncController implements EventSyncController {
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/sofascore/all")
+    public ResponseEntity<String> syncEventsWithSofascore() {
+        try {
+            sofascoreEventSyncService.syncEvents();
+            return ResponseEntity.ok("Events synced successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error syncing events: " + e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/sofascore/competition/init")
     public ResponseEntity<String> initCompetitionEventsWithSofascore(
             @RequestParam(name = "competition") FootballCompetition competition) {

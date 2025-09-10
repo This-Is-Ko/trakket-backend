@@ -107,8 +107,9 @@ public class SofascoreEventSyncService {
         log.info("Finished initializing/syncing competition {} for latest season {}", competition, latestSeason.getYear());
     }
 
-    public void syncEvents() throws InterruptedException {
+    public void syncEvents() {
         for (FootballCompetition competition : competitionMapping.keySet()) {
+            log.info("Syncing sofascore competition {}" , competition.getDisplayName());
             syncRound(competition, null);
             // Sleep
             try {
