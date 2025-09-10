@@ -14,14 +14,12 @@ import java.util.Map;
 @Slf4j
 @Service
 public class DiscordAlertService {
+    private static final String BOT_USERNAME = "SofaScore Sync Bot";
 
     private final WebClient discordWebClient;
 
     @Value("${discord.webhook.url}")
     private String webhookUrl;
-
-    @Value("${discord.webhook.username:SofaScore Sync Bot}")
-    private String username;
 
     public DiscordAlertService(@Qualifier("discordWebClient") WebClient discordWebClient) {
         this.discordWebClient = discordWebClient;
@@ -37,7 +35,7 @@ public class DiscordAlertService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, Object> payload = Map.of(
-                "username", username,
+                "username", BOT_USERNAME,
                 "content", message
         );
 
