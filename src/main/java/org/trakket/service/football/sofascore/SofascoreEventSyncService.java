@@ -110,7 +110,11 @@ public class SofascoreEventSyncService {
     public void syncEvents() {
         for (FootballCompetition competition : competitionMapping.keySet()) {
             log.info("Syncing sofascore competition {}" , competition.getDisplayName());
-            syncRound(competition, null);
+            try {
+                syncRound(competition, null);
+            } catch (Exception ex) {
+                log.error("Error syncing sofascore competition {}", competition, ex);
+            }
             // Sleep
             try {
                 long sleepMs = ThreadLocalRandom.current().nextLong(2000, 6001);
