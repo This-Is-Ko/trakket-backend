@@ -2,6 +2,7 @@ package org.trakket.service.football.sofascore;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.trakket.client.SofascoreClient;
@@ -20,6 +21,7 @@ import org.trakket.model.FootballEvent;
 import org.trakket.model.FootballTeam;
 import org.trakket.repository.FootballEventRepository;
 import org.trakket.repository.FootballTeamRepository;
+import org.trakket.service.discord.DiscordAlertService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -40,6 +42,7 @@ public class SofascoreEventSyncService {
     private final FootballEventRepository footballEventRepository;
     private final FootballTeamRepository footballTeamRepository;
     private final TeamLogoService teamLogoService;
+    private final DiscordAlertService discordAlertService;
 
     private final Map<FootballCompetition, SofascoreMetadata> competitionMapping = Map.ofEntries(
             Map.entry(FootballCompetition.ENGLISH_PREMIER_LEAGUE, new SofascoreMetadata(17, 76986)),
@@ -107,15 +110,20 @@ public class SofascoreEventSyncService {
         log.info("Finished initializing/syncing competition {} for latest season {}", competition, latestSeason.getYear());
     }
 
+    @Scheduled(cron = "0 0 9,21 * * *")
     public void syncEvents() {
         for (FootballCompetition competition : competitionMapping.keySet()) {
             log.info("Syncing sofascore competition {}" , competition.getDisplayName());
             try {
-                syncRound(competition, null);
+                syncRoundBlocking(competition);
             } catch (Exception ex) {
                 log.error("Error syncing sofascore competition {}", competition, ex);
+                discordAlertService.sendAlert(
+                        "Sync failed for competition: " + competition.getDisplayName() +
+                                "\nError: " + ex.getMessage()
+                );
             }
-            // Sleep
+            // Random sleep
             try {
                 long sleepMs = ThreadLocalRandom.current().nextLong(2000, 6001);
                 Thread.sleep(sleepMs);
@@ -124,6 +132,28 @@ public class SofascoreEventSyncService {
                 log.warn("Interrupted while syncEvents sleeping between competition", e);
             }
         }
+    }
+
+    public void syncRoundBlocking(FootballCompetition competition) {
+        SofascoreMetadata metadata = getCompetitionMetadata(competition);
+        Integer uniqueTournamentId = metadata.getCompetitionId();
+        Integer seasonId = metadata.getSeasonId();
+        if (uniqueTournamentId == null || seasonId == null) {
+            throw new IllegalArgumentException("Missing competition metadata: " + competition);
+        }
+
+        SofascoreRoundsResponse roundsResponse = client.fetchRounds(uniqueTournamentId, seasonId).block();
+        if (roundsResponse == null || roundsResponse.getCurrentRound() == null || roundsResponse.getRounds() == null) {
+            throw new RuntimeException("No rounds found for " + competition);
+        }
+        Integer round = roundsResponse.getCurrentRound().getRound();
+        log.info("Current round for {} is {}", competition, round);
+
+        client.fetchRoundEvents(uniqueTournamentId, seasonId, round)
+                .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
+                .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
+                        .subscribeOn(Schedulers.boundedElastic()))
+                .blockLast();
     }
 
     /**
@@ -151,7 +181,7 @@ public class SofascoreEventSyncService {
                 // do DB work on boundedElastic
                 .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
                         .subscribeOn(Schedulers.boundedElastic()))
-                .doOnError(ex -> log.error("SofaScore sync error", ex))
+                .doOnError(ex -> log.error("SofaScore sync error for {}", competition, ex))
                 .subscribe();
     }
 
@@ -284,12 +314,11 @@ public class SofascoreEventSyncService {
     private EventStatus mapStatus(SofascoreStatusDto status) {
         if (status == null || status.getType() == null) return EventStatus.SCHEDULED;
         String t = status.getType().toLowerCase();
-        switch (t) {
-            case "notstarted": return EventStatus.SCHEDULED;
-            case "inprogress": return EventStatus.IN_PROGRESS;
-            case "finished":   return EventStatus.COMPLETED;
-            default:           return EventStatus.SCHEDULED;
-        }
+        return switch (t) {
+            case "inprogress" -> EventStatus.IN_PROGRESS;
+            case "finished" -> EventStatus.COMPLETED;
+            default -> EventStatus.SCHEDULED;
+        };
     }
 
     private String buildExternalLink(SofascoreEventDto dto) {
