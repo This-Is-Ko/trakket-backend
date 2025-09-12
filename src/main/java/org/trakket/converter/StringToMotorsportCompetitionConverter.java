@@ -7,7 +7,7 @@ public class StringToMotorsportCompetitionConverter implements Converter<String,
     @Override
     public MotorsportCompetition convert(String source) {
         for (MotorsportCompetition mc : MotorsportCompetition.values()) {
-            if (mc.getDisplayName().equalsIgnoreCase(source)) {
+            if (mc.name().equalsIgnoreCase(source) || mc.getDisplayName().equalsIgnoreCase(source)) {
                 return mc;
             }
         }

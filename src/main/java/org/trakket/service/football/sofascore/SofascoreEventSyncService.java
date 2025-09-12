@@ -118,10 +118,7 @@ public class SofascoreEventSyncService {
                 syncRoundBlocking(competition);
             } catch (Exception ex) {
                 log.error("Error syncing sofascore competition {}", competition, ex);
-                discordAlertService.sendAlert(
-                        "Sync failed for competition: " + competition.getDisplayName() +
-                                "\nError: " + ex.getMessage()
-                );
+                discordAlertService.sendCompetitionSyncFailedAlert(competition.getDisplayName(), ex);
             }
             // Random sleep
             try {
@@ -132,6 +129,7 @@ public class SofascoreEventSyncService {
                 log.warn("Interrupted while syncEvents sleeping between competition", e);
             }
         }
+        log.info("Finished sofascore sync");
     }
 
     public void syncRoundBlocking(FootballCompetition competition) {

@@ -71,7 +71,7 @@ public class WebClientConfig {
     }
 
     /**
-     * Generic default WebClient (primary). Useful for internal or fallback uses.
+     * Generic default WebClient
      */
     @Bean
     @Primary
@@ -82,7 +82,7 @@ public class WebClientConfig {
     }
 
     /**
-     * SofaScore WebClient (named). Use @Qualifier("sofascoreWebClient") when injecting.
+     * SofaScore WebClient
      */
     @Bean
     public WebClient sofascoreWebClient(ConnectionProvider sharedConnectionProvider) {
@@ -93,7 +93,7 @@ public class WebClientConfig {
     }
 
     /**
-     * Fantasy Premier League WebClient (named). Use @Qualifier("fplWebClient") when injecting.
+     * Fantasy Premier League WebClient
      */
     @Bean
     public WebClient fplWebClient(ConnectionProvider sharedConnectionProvider) {
@@ -103,6 +103,33 @@ public class WebClientConfig {
                 .build();
     }
 
+    /**
+     * TheSportsDB WebClient
+     */
+    @Bean
+    @Qualifier("sportsDbWebClient")
+    public WebClient sportsDbWebClient(ConnectionProvider sharedConnectionProvider) {
+        return preconfiguredBuilder()
+                .clientConnector(createClientConnector(sharedConnectionProvider))
+                .baseUrl("https://www.thesportsdb.com/api/v1/json/123")
+                .build();
+    }
+
+    /**
+     * MotoTiming WebClient
+     */
+    @Bean
+    @Qualifier("motoTimingWebClient")
+    public WebClient motoTimingWebClient(ConnectionProvider sharedConnectionProvider) {
+        return preconfiguredBuilder()
+                .clientConnector(createClientConnector(sharedConnectionProvider))
+                .baseUrl("https://mototiming.live")
+                .build();
+    }
+
+    /**
+     * Discord WebClient
+     */
     @Bean
     @Qualifier("discordWebClient")
     public WebClient discordWebClient(ConnectionProvider sharedConnectionProvider) {

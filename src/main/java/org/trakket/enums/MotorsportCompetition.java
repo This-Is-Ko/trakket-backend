@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum MotorsportCompetition {
     FORMULA_ONE("Formula One"),
     WORLD_ENDURANCE_CHAMPIONSHIP("World Endurance Championship"),
-    FORMULA_E("Formula E");
+    FORMULA_E("Formula E"),
+    MOTOGP("MotoGP");
 
     private final String displayName;
 

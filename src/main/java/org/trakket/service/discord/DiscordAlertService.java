@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.trakket.enums.MotorsportCompetition;
 
 import java.util.Map;
 
@@ -52,5 +53,10 @@ public class DiscordAlertService {
         } catch (Exception e) {
             log.error("Failed to send Discord notification: " + e.getMessage());
         }
+    }
+
+    public void sendCompetitionSyncFailedAlert(String name, Throwable ex) {
+        sendAlert("Sync failed for competition: " + name +
+                "\nError: " + ex.getMessage());
     }
 }
