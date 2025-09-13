@@ -17,7 +17,8 @@ public class FootballCompetitionService {
                 FootballCompetition.FA_CUP,
                 FootballCompetition.EFL_CUP,
                 FootballCompetition.UEFA_CHAMPIONS_LEAGUE,
-                FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE
+                FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE,
+                FootballCompetition.UEFA_EUROPA_LEAGUE
         ));
     }
 
