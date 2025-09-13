@@ -1,4 +1,4 @@
-package unit.service;
+package unit.service.football;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;

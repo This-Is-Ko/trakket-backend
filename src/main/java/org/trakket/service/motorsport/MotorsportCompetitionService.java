@@ -9,7 +9,22 @@ import java.util.List;
 @Service
 public class MotorsportCompetitionService {
 
+    private final List<MotorsportCompetition> excluded;
+
+    public MotorsportCompetitionService() {
+        this(List.of(
+                MotorsportCompetition.FORMULA_E,
+                MotorsportCompetition.MOTOGP
+        ));
+    }
+
+    public MotorsportCompetitionService(List<MotorsportCompetition> excluded) {
+        this.excluded = excluded;
+    }
+
     public List<MotorsportCompetition> getAllCompetitions() {
-        return Arrays.asList(MotorsportCompetition.values());
+        return Arrays.stream(MotorsportCompetition.values())
+                .filter(c -> !excluded.contains(c))
+                .toList();
     }
 }
