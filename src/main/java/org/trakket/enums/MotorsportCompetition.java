@@ -1,7 +1,10 @@
 package org.trakket.enums;
 
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Getter;
 
+@Getter
+@JsonFormat(shape = JsonFormat.Shape.OBJECT)
 public enum MotorsportCompetition {
     FORMULA_ONE("Formula One"),
     WORLD_ENDURANCE_CHAMPIONSHIP("World Endurance Championship"),
@@ -14,8 +17,4 @@ public enum MotorsportCompetition {
         this.displayName = displayName;
     }
 
-    @JsonValue
-    public String getDisplayName() {
-        return displayName;
-    }
 }
