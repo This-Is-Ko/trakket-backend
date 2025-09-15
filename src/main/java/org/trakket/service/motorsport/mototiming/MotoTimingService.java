@@ -139,6 +139,11 @@ public class MotoTimingService {
             return;
         }
 
+        // Skip test sessions
+        if (eventDto.getName().toLowerCase().contains("test")) {
+            return;
+        }
+
         event.setCompetition(competition);
         event.setSeason(season);
 
@@ -171,8 +176,10 @@ public class MotoTimingService {
         OffsetDateTime lastSessionEnd = parseOffset(eventDto.getLastSessionEndTime());
         if (lastSessionEnd != null && lastSessionEnd.isBefore(OffsetDateTime.now())) {
             event.setStatus(EventStatus.COMPLETED);
-            event.setWinner(classificationsDto.getRiderName());
-//            event.setWinnerTeam(classificationsDto.getTeamName());
+            if (classificationsDto != null) {
+                event.setWinner(classificationsDto.getRiderName());
+//                event.setWinnerTeam(classificationsDto.getTeamName());
+            }
         } else {
             event.setStatus(EventStatus.SCHEDULED);
         }

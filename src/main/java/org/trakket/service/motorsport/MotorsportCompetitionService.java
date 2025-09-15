@@ -13,8 +13,7 @@ public class MotorsportCompetitionService {
 
     public MotorsportCompetitionService() {
         this(List.of(
-                MotorsportCompetition.FORMULA_E,
-                MotorsportCompetition.MOTOGP
+                MotorsportCompetition.FORMULA_E
         ));
     }
 
