@@ -53,7 +53,7 @@ class MotorsportCompetitionServiceTest {
 
         // build expected dynamically from default excluded
         List<MotorsportCompetition> expected = Arrays.stream(MotorsportCompetition.values())
-                .filter(c -> c != MotorsportCompetition.FORMULA_E && c != MotorsportCompetition.MOTOGP)
+                .filter(c -> c != MotorsportCompetition.FORMULA_E)
                 .toList();
 
         assertThat(result).containsExactlyInAnyOrderElementsOf(expected);
