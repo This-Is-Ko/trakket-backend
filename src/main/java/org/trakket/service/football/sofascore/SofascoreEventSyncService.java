@@ -53,9 +53,16 @@ public class SofascoreEventSyncService {
             Map.entry(FootballCompetition.LA_LIGA, new SofascoreMetadata(8, 77559)),
             Map.entry(FootballCompetition.SERIE_A, new SofascoreMetadata(23, 76457)),
             Map.entry(FootballCompetition.BUNDESLIGA, new SofascoreMetadata(35, 77333)),
+            Map.entry(FootballCompetition.INTERNATIONAL_FRIENDLY_GAMES_MEN, new SofascoreMetadata(851, 69578)),
+            Map.entry(FootballCompetition.EURO_MEN, new SofascoreMetadata(1, 56953)),
+            Map.entry(FootballCompetition.WORLD_CUP_MEN, new SofascoreMetadata(16, 58210)),
             Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227)),
             Map.entry(FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE, new SofascoreMetadata(696, 77328)),
-            Map.entry(FootballCompetition.NATIONAL_WOMENS_SOCCER_LEAGUE, new SofascoreMetadata(1690, 71412))
+            Map.entry(FootballCompetition.NATIONAL_WOMENS_SOCCER_LEAGUE, new SofascoreMetadata(1690, 71412)),
+            Map.entry(FootballCompetition.AFC_WOMENS_ASIAN_CUP, new SofascoreMetadata(1692, 79569)),
+            Map.entry(FootballCompetition.INTERNATIONAL_FRIENDLY_GAMES_WOMEN, new SofascoreMetadata(852, 69579)),
+            Map.entry(FootballCompetition.EURO_WOMEN, new SofascoreMetadata(477, 69935)),
+            Map.entry(FootballCompetition.UEFA_WOMENS_NATIONS_LEAGUE, new SofascoreMetadata(20378, 69066))
     );
 
     /**
