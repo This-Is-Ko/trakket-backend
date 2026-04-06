@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.trakket.client.SofascoreClient;
 import org.trakket.dto.football.sofascore.SofascoreEventDto;
+import org.trakket.dto.football.sofascore.SofascoreEventsResponse;
 import org.trakket.dto.football.sofascore.SofascoreMetadata;
 import org.trakket.dto.football.sofascore.SofascoreRoundInfoDto;
 import org.trakket.dto.football.sofascore.SofascoreRoundsResponse;
@@ -46,7 +47,7 @@ public class SofascoreEventSyncService {
 
     private final Map<FootballCompetition, SofascoreMetadata> competitionMapping = Map.ofEntries(
             Map.entry(FootballCompetition.ENGLISH_PREMIER_LEAGUE, new SofascoreMetadata(17, 76986)),
-            Map.entry(FootballCompetition.FA_CUP, new SofascoreMetadata(19, 67958)),
+            Map.entry(FootballCompetition.FA_CUP, new SofascoreMetadata(19, 82557)),
             Map.entry(FootballCompetition.EFL_CUP, new SofascoreMetadata(21, 77500)),
             Map.entry(FootballCompetition.UEFA_CHAMPIONS_LEAGUE, new SofascoreMetadata(7, 76953)),
             Map.entry(FootballCompetition.UEFA_EUROPA_LEAGUE, new SofascoreMetadata(679, 76984)),
@@ -92,12 +93,14 @@ public class SofascoreEventSyncService {
 
         // Loop over every round and fetch + upsert events
         for (SofascoreRoundInfoDto roundInfo : roundsResponse.getRounds()) {
-            Integer roundNumber = roundInfo != null ? roundInfo.getRound() : null;
-            if (roundNumber == null) continue;
+            if (roundInfo == null || roundInfo.getRound() == null) {
+                continue;
+            }
 
-            log.info("Fetching events for {} season {} round {}", competition, seasonId, roundNumber);
+            Integer roundNumber = roundInfo.getRound();
+            log.info("Fetching events for {} season {} round {} slug {}", competition, seasonId, roundNumber, roundInfo.getSlug());
 
-            client.fetchRoundEvents(uniqueTournamentId, seasonId, roundNumber)
+            fetchRoundEventsForCompetition(uniqueTournamentId, seasonId, roundInfo)
                     .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
                     .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
                             .subscribeOn(Schedulers.boundedElastic()))
@@ -151,10 +154,13 @@ public class SofascoreEventSyncService {
         if (roundsResponse == null || roundsResponse.getCurrentRound() == null || roundsResponse.getRounds() == null) {
             throw new RuntimeException("No rounds found for " + competition);
         }
-        Integer round = roundsResponse.getCurrentRound().getRound();
-        log.info("Current round for {} is {}", competition, round);
+        SofascoreRoundInfoDto currentRound = roundsResponse.getCurrentRound();
+        if (currentRound == null || currentRound.getRound() == null) {
+            throw new RuntimeException("Current round missing for " + competition);
+        }
+        log.info("Current round for {} is {} ({})", competition, currentRound.getRound(), currentRound.getSlug());
 
-        client.fetchRoundEvents(uniqueTournamentId, seasonId, round)
+        fetchRoundEventsForCompetition(uniqueTournamentId, seasonId, currentRound)
                 .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
                 .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
                         .subscribeOn(Schedulers.boundedElastic()))
@@ -164,7 +170,7 @@ public class SofascoreEventSyncService {
     /**
      * Add/update round events for a tournament and season.
      */
-    public void syncRound(FootballCompetition competition, Integer round) {
+    public void syncRound(FootballCompetition competition, Integer round, String roundSlug) {
         SofascoreMetadata metadata = getCompetitionMetadata(competition);
         Integer uniqueTournamentId = metadata.getCompetitionId();
         Integer seasonId = metadata.getSeasonId();
@@ -177,11 +183,17 @@ public class SofascoreEventSyncService {
             if (roundsResponse == null || roundsResponse.getCurrentRound() == null || roundsResponse.getRounds() == null) {
                 throw new RuntimeException("No rounds found for " + competition);
             }
-            round = roundsResponse.getCurrentRound().getRound();
-            log.info("Current round for {} is {}", competition, round);
+            SofascoreRoundInfoDto currentRound = roundsResponse.getCurrentRound();
+            round = currentRound.getRound();
+            roundSlug = currentRound.getSlug();
+            log.info("Current round for {} is {} ({})", competition, round, roundSlug);
         }
 
-        client.fetchRoundEvents(uniqueTournamentId, seasonId, round)
+        SofascoreRoundInfoDto requestedRound = new SofascoreRoundInfoDto();
+        requestedRound.setRound(round);
+        requestedRound.setSlug(roundSlug);
+
+        fetchRoundEventsForCompetition(uniqueTournamentId, seasonId, requestedRound)
                 .flatMapMany(resp -> Flux.fromIterable(resp.getEvents()))
                 // do DB work on boundedElastic
                 .flatMap(dto -> Mono.fromCallable(() -> upsertFromSofaEvent(dto, competition))
@@ -337,5 +349,23 @@ public class SofascoreEventSyncService {
             throw new IllegalArgumentException("Unknown competition: " + competition);
         }
         return metadata;
+    }
+
+    private Mono<SofascoreEventsResponse> fetchRoundEventsForCompetition(
+            Integer uniqueTournamentId,
+            Integer seasonId,
+            SofascoreRoundInfoDto roundInfo
+    ) {
+        Integer round = roundInfo != null ? roundInfo.getRound() : null;
+        if (round == null) {
+            throw new IllegalArgumentException("Round number is required");
+        }
+
+        String slug = roundInfo.getSlug();
+        if (slug == null || slug.isBlank()) {
+            return client.fetchRoundEvents(uniqueTournamentId, seasonId, round);
+        }
+
+        return client.fetchRoundEventsWithSlug(uniqueTournamentId, seasonId, round, slug);
     }
 }

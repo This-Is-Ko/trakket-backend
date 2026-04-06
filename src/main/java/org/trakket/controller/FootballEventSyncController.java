@@ -34,9 +34,10 @@ public class FootballEventSyncController implements EventSyncController {
     @GetMapping("/sofascore")
     public ResponseEntity<String> syncEventsWithSofascore(
             @RequestParam(name = "competition") FootballCompetition competition,
-            @RequestParam(name = "round", required = false) Integer round) {
+            @RequestParam(name = "round", required = false) Integer round,
+            @RequestParam(name = "roundSlug", required = false) String roundSlug) {
         try {
-            sofascoreEventSyncService.syncRound(competition, round);
+            sofascoreEventSyncService.syncRound(competition, round, roundSlug);
             return ResponseEntity.ok("Events synced successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error syncing events: " + e.getMessage());

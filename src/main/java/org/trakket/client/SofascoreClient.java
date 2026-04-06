@@ -1,6 +1,5 @@
 package org.trakket.client;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,6 +21,18 @@ public class SofascoreClient {
         String path = String.format(
                 "/api/v1/unique-tournament/%d/season/%d/events/round/%d",
                 uniqueTournamentId, seasonId, round
+        );
+        return sofascoreWebClient
+                .get()
+                .uri(path)
+                .retrieve()
+                .bodyToMono(SofascoreEventsResponse.class);
+    }
+
+    public Mono<SofascoreEventsResponse> fetchRoundEventsWithSlug(int uniqueTournamentId, long seasonId, int round, String roundSlug) {
+        String path = String.format(
+                "/api/v1/unique-tournament/%d/season/%d/events/round/%d/slug/%s",
+                uniqueTournamentId, seasonId, round, roundSlug
         );
         return sofascoreWebClient
                 .get()
