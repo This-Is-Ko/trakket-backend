@@ -13,7 +13,7 @@ public class FootballCompetitionService {
     private final List<FootballCompetition> excluded;
 
     public FootballCompetitionService() {
-        this(null);
+        this(List.of());
     }
 
     public FootballCompetitionService(List<FootballCompetition> excluded) {
