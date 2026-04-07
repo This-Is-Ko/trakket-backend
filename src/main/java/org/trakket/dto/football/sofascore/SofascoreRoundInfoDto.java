@@ -7,4 +7,6 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SofascoreRoundInfoDto {
     private Integer round;
+    private String name;
+    private String slug;
 }
