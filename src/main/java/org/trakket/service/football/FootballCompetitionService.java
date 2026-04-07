@@ -13,13 +13,7 @@ public class FootballCompetitionService {
     private final List<FootballCompetition> excluded;
 
     public FootballCompetitionService() {
-        this(List.of(
-                FootballCompetition.FA_CUP,
-                FootballCompetition.EFL_CUP,
-                FootballCompetition.UEFA_CHAMPIONS_LEAGUE,
-                FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE,
-                FootballCompetition.UEFA_EUROPA_LEAGUE
-        ));
+        this(null);
     }
 
     public FootballCompetitionService(List<FootballCompetition> excluded) {
