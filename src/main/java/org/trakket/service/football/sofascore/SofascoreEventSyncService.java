@@ -58,6 +58,7 @@ public class SofascoreEventSyncService {
             Map.entry(FootballCompetition.EURO_MEN, new SofascoreMetadata(1, 56953)),
             Map.entry(FootballCompetition.WORLD_CUP_MEN, new SofascoreMetadata(16, 58210)),
             Map.entry(FootballCompetition.ENGLISH_WOMENS_SUPER_LEAGUE, new SofascoreMetadata(1044, 79227)),
+            Map.entry(FootballCompetition.WOMENS_FA_CUP, new SofascoreMetadata(11666, 84634)),
             Map.entry(FootballCompetition.UEFA_WOMENS_CHAMPIONS_LEAGUE, new SofascoreMetadata(696, 77328)),
             Map.entry(FootballCompetition.NATIONAL_WOMENS_SOCCER_LEAGUE, new SofascoreMetadata(1690, 71412)),
             Map.entry(FootballCompetition.AFC_WOMENS_ASIAN_CUP, new SofascoreMetadata(1692, 79569)),
