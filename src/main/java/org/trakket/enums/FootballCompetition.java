@@ -18,6 +18,7 @@ public enum FootballCompetition {
     EURO_MEN("Euro M", Gender.M),
     WORLD_CUP_MEN("World Cup M", Gender.M),
     ENGLISH_WOMENS_SUPER_LEAGUE("English Women's Super League", Gender.F),
+    WOMENS_FA_CUP("Women's FA Cup", Gender.F),
     UEFA_WOMENS_CHAMPIONS_LEAGUE("UEFA Women's Champions league", Gender.F),
     NATIONAL_WOMENS_SOCCER_LEAGUE("National Women's Soccer League", Gender.F),
     AFC_WOMENS_ASIAN_CUP("AFC Women's Asian Cup", Gender.F),
