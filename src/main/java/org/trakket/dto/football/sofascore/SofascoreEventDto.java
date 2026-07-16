@@ -13,8 +13,8 @@ public class SofascoreEventDto {
     private SofascoreRoundInfoDto roundInfo;
     private SofascoreTeamDto homeTeam;
     private SofascoreTeamDto awayTeam;
-    private SofaScoreDto homeScore;
-    private SofaScoreDto awayScore;
+    private SofascoreScoreDto homeScore;
+    private SofascoreScoreDto awayScore;
     private SofascoreUniqueTournamentDto uniqueTournament;
     private SofascoreSeasonDto season;
 }

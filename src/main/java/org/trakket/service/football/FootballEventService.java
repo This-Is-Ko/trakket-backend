@@ -1,7 +1,7 @@
 package org.trakket.service.football;
 
 import jakarta.persistence.EntityNotFoundException;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.trakket.dto.football.FootballEventDto;
 import org.trakket.dto.football.FootballEventWithStatus;
 import org.trakket.dto.football.FootballEventsWithStatusResponse;
@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class FootballEventService implements EventService<FootballEvent> {
 
     private final FootballEventRepository footballEventRepository;

@@ -26,7 +26,7 @@ import org.trakket.enums.Gender;
                 @UniqueConstraint(columnNames = {"name", "gender"})
         }
 )
-public class FootballTeam extends SofascoreDetails {
+public class FootballTeam extends SofascoreIdentifiable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

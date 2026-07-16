@@ -1,6 +1,7 @@
 package org.trakket.service.auth;
 
 import lombok.RequiredArgsConstructor;
+import org.trakket.model.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -32,6 +33,20 @@ public class JwtTokenService {
                 .issuedAt(now)
                 .expiresAt(now.plus(2, ChronoUnit.HOURS))
                 .subject(authentication.getName())
+                .claim("scope", scope)
+                .build();
+        var encoderParameters = JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims);
+        return this.encoder.encode(encoderParameters).getTokenValue();
+    }
+
+    public String generateTokenForUser(User user) {
+        Instant now = Instant.now();
+        String scope = user.getRole().name();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("self")
+                .issuedAt(now)
+                .expiresAt(now.plus(2, ChronoUnit.HOURS))
+                .subject(user.getEmail())
                 .claim("scope", scope)
                 .build();
         var encoderParameters = JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims);

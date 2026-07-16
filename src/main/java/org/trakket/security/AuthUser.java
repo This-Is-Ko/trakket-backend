@@ -20,7 +20,7 @@ public class AuthUser implements UserDetails {
     public String getUsername() { return user.getEmail(); }
 
     @Override
-    public String getPassword() { return user.getPassword(); }
+    public String getPassword() { return user.getPassword() != null ? user.getPassword() : ""; }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

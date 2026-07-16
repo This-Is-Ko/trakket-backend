@@ -1,23 +1,19 @@
 package org.trakket.service.football.sofascore;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.trakket.enums.Gender;
 import org.trakket.service.amazon.S3StorageService;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 
 @Service
+@RequiredArgsConstructor
 public class TeamLogoService {
 
     private final S3StorageService s3StorageService;
-
-    public TeamLogoService(S3StorageService s3StorageService) {
-        this.s3StorageService = s3StorageService;
-    }
 
     public String downloadAndUploadLogo(Long teamId, Long sofascoreTeamId) {
         String sofascoreUrl = "https://img.sofascore.com/api/v1/team/" + sofascoreTeamId + "/image";

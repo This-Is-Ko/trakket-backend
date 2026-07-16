@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LoginResponse {
 
-    private String name;
+    private String email;
     private Long expiresAt;
 
 }

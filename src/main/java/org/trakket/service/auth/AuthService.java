@@ -1,19 +1,17 @@
 package org.trakket.service.auth;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.trakket.dto.auth.GoogleLoginRequest;
 import org.trakket.dto.auth.LoginRequest;
 import org.trakket.dto.auth.LoginResponse;
-import org.trakket.dto.auth.ResendOtpRequest;
 import org.trakket.dto.auth.UserInfoResponse;
-import org.trakket.dto.auth.UserSignupOtpChallengeResponse;
-import org.trakket.dto.auth.UserSignupRequest;
-import org.trakket.dto.auth.UserSignupResponse;
-import org.trakket.dto.auth.VerifyOtpRequest;
+import org.trakket.enums.AuthProvider;
 import org.trakket.enums.UserRole;
-import org.trakket.exception.SignupException;
-import org.trakket.exception.UserAlreadyExistsException;
+import org.trakket.exception.GoogleAuthException;
 import org.trakket.model.User;
 import org.trakket.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,16 +22,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
-    private final OtpService otpService;
     private final JwtTokenService jwtTokenService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
     public LoginResponse authenticate(LoginRequest authRequest, HttpServletResponse response) {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(authRequest.getEmail(), authRequest.getPassword());
@@ -42,78 +42,71 @@ public class AuthService {
         String jwtToken = jwtTokenService.generateToken(authentication);
         Long expiresAt = jwtTokenService.extractExpirationTime(jwtToken);
 
-        Cookie jwtCookie = new Cookie("access_token", jwtToken);
-        jwtCookie.setHttpOnly(true);
-        // Disabled for postman testing
-        jwtCookie.setSecure(true);
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge((int) ((expiresAt - System.currentTimeMillis()) / 1000));
-        jwtCookie.setAttribute("SameSite", "Strict");
-
-        response.addCookie(jwtCookie);
+        setJwtCookie(response, jwtToken, expiresAt);
 
         return new LoginResponse(authentication.getName(), expiresAt);
     }
 
     @Transactional
-    public UserSignupOtpChallengeResponse signup(UserSignupRequest request) {
-        Optional<User> existingUserOpt = userRepository.findByEmail(request.getEmail());
+    public LoginResponse authenticateWithGoogle(GoogleLoginRequest request, HttpServletResponse response) {
+        GoogleIdToken.Payload payload = googleTokenVerifier.verify(request.getIdToken());
 
-        if (existingUserOpt.isPresent()) {
-            User existingUser = existingUserOpt.get();
-            if (existingUser.isVerified()) {
-                throw new UserAlreadyExistsException("Email already taken.");
-            } else {
-                otpService.prepareAndSendSignUpOtp(existingUser);
-                return new UserSignupOtpChallengeResponse(existingUser.getUsername());
+        String googleId = payload.getSubject();
+        String email = payload.getEmail();
+
+        // Check if user already exists by Google ID (sub claim — stable across email changes)
+        Optional<User> existingByGoogleId = userRepository.findByGoogleId(googleId);
+        if (existingByGoogleId.isPresent()) {
+            User user = existingByGoogleId.get();
+            // Keep the email current — Google allows account email changes
+            if (!user.getEmail().equals(email)) {
+                user.setEmail(email);
+                user.setUsername(email);
+                userRepository.save(user);
+                log.atInfo().setMessage("Google login: updated email for user {} from {} to {}")
+                        .addArgument(googleId)
+                        .addArgument(user.getEmail())
+                        .addArgument(email)
+                        .log();
             }
+            String jwtToken = jwtTokenService.generateTokenForUser(user);
+            Long expiresAt = jwtTokenService.extractExpirationTime(jwtToken);
+            setJwtCookie(response, jwtToken, expiresAt);
+            log.atInfo().setMessage("Google login: existing Google user {}").addArgument(user.getEmail()).log();
+            return new LoginResponse(user.getEmail(), expiresAt);
         }
 
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new UserAlreadyExistsException("Username already taken.");
+        // Check if email already registered (conflict with existing email/password user)
+        Optional<User> existingByEmail = userRepository.findByEmail(email);
+        if (existingByEmail.isPresent()) {
+            User existingUser = existingByEmail.get();
+            if (existingUser.getProvider() == AuthProvider.EMAIL) {
+                throw new GoogleAuthException(
+                        "An account with this email already exists. Please log in with your email and password, "
+                                + "then link your Google account in settings."
+                );
+            }
+            // Provider is GOOGLE but different googleId — shouldn't happen normally, but handle it
+            throw new GoogleAuthException("An account with this email already exists.");
         }
 
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(UserRole.ROLE_USER);
-        user.setVerified(false);
-        userRepository.save(user);
+        // Create new user — email is guaranteed unique (checked above), so reuse it as username
+        User newUser = new User();
+        newUser.setUsername(email);
+        newUser.setEmail(email);
+        newUser.setGoogleId(googleId);
+        newUser.setProvider(AuthProvider.GOOGLE);
+        newUser.setRole(UserRole.ROLE_USER);
+        newUser.setVerified(true);
+        newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        userRepository.save(newUser);
 
-        otpService.prepareAndSendSignUpOtp(user);
+        String jwtToken = jwtTokenService.generateTokenForUser(newUser);
+        Long expiresAt = jwtTokenService.extractExpirationTime(jwtToken);
+        setJwtCookie(response, jwtToken, expiresAt);
 
-        return new UserSignupOtpChallengeResponse(user.getUsername());
-    }
-
-    public UserSignupOtpChallengeResponse resendOtp(ResendOtpRequest resendOtpRequest) {
-        Optional<User> userOpt = userRepository.findByEmail(resendOtpRequest.getEmail());
-        if (userOpt.isEmpty()) {
-            throw new SignupException("User not found.");
-        }
-        User user = userOpt.get();
-        if (user.isVerified()) {
-            throw new SignupException("User already verified.");
-        }
-        otpService.prepareAndSendSignUpOtp(user);
-        return new UserSignupOtpChallengeResponse(user.getUsername());
-    }
-
-    @Transactional
-    public UserSignupResponse verifySignUpOtp(VerifyOtpRequest verifyOtpRequest) {
-        Optional<User> userObject = userRepository.findByEmail(verifyOtpRequest.getEmail());
-        if (userObject.isEmpty()) {
-            throw new SignupException("User not found.");
-        }
-        User user = userObject.get();
-        if (user.isVerified()) {
-            throw new SignupException("User already verified.");
-        }
-        otpService.validateOtp(user, verifyOtpRequest.getOtp());
-
-        user.setVerified(true);
-        userRepository.save(user);
-        return new UserSignupResponse(user.getUsername());
+        log.atInfo().setMessage("Google login: new user created {}").addArgument(newUser.getEmail()).log();
+        return new LoginResponse(newUser.getEmail(), expiresAt);
     }
 
     public void logout(HttpServletResponse response) {
@@ -132,5 +125,15 @@ public class AuthService {
         return new UserInfoResponse(
                 user.getUsername()
         );
+    }
+
+    private void setJwtCookie(HttpServletResponse response, String jwtToken, Long expiresAt) {
+        Cookie jwtCookie = new Cookie("access_token", jwtToken);
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setSecure(true);
+        jwtCookie.setPath("/");
+        jwtCookie.setMaxAge((int) ((expiresAt - System.currentTimeMillis()) / 1000));
+        jwtCookie.setAttribute("SameSite", "Strict");
+        response.addCookie(jwtCookie);
     }
 }

@@ -3,17 +3,12 @@ package org.trakket.controller;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.trakket.dto.auth.GoogleLoginRequest;
 import org.trakket.dto.auth.LoginRequest;
 import org.trakket.dto.auth.LoginResponse;
-import org.trakket.dto.auth.ResendOtpRequest;
 import org.trakket.dto.auth.UserInfoResponse;
-import org.trakket.dto.auth.UserSignupOtpChallengeResponse;
-import org.trakket.dto.auth.UserSignupResponse;
-import org.trakket.dto.auth.UserSignupRequest;
-import org.trakket.dto.auth.VerifyOtpRequest;
 import org.trakket.exception.UnauthorizedException;
 import org.trakket.service.auth.AuthService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequiredArgsConstructor
@@ -35,19 +29,9 @@ public class AuthController {
         return authService.authenticate(authRequest, response);
     }
 
-    @PostMapping("/signup")
-    public UserSignupOtpChallengeResponse signup(@Valid @RequestBody UserSignupRequest userSignupRequest) {
-        return authService.signup(userSignupRequest);
-    }
-
-    @PostMapping("/otp/resend")
-    public UserSignupOtpChallengeResponse resendOtp(@RequestBody ResendOtpRequest resendOtpRequest) {
-        return authService.resendOtp(resendOtpRequest);
-    }
-
-    @PostMapping("/otp/verify")
-    public UserSignupResponse verifyOtp(@RequestBody VerifyOtpRequest verifyOtpRequest) {
-        return authService.verifySignUpOtp(verifyOtpRequest);
+    @PostMapping("/google")
+    public LoginResponse googleLogin(@Valid @RequestBody GoogleLoginRequest request, HttpServletResponse response) {
+        return authService.authenticateWithGoogle(request, response);
     }
 
     @PostMapping("/logout")
@@ -64,5 +48,4 @@ public class AuthController {
 
         return authService.getUserInfo(authentication);
     }
-
 }

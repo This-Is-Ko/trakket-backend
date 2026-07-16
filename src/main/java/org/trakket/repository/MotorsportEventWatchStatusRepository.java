@@ -15,6 +15,7 @@ import java.util.Optional;
 public interface MotorsportEventWatchStatusRepository extends JpaRepository<MotorsportEventWatchStatus, Long> {
     Optional<MotorsportEventWatchStatus> findByEventAndUser(MotorsportEvent event, User user);
     List<MotorsportEventWatchStatus> findAllByUser(User user);
+    List<MotorsportEventWatchStatus> findByUserAndEventIdIn(User user, List<Long> eventIds);
 
     List<MotorsportEventWatchStatus> findByUserAndStatusNotOrderByEvent_DateTimeDesc(
             User user,
