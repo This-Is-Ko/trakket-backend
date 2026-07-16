@@ -1,5 +1,6 @@
 package org.trakket.dto.auth;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,9 +8,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class VerifyOtpRequest {
+public class GoogleLoginRequest {
 
-    private String email;
-    private String otp;
-
+    @NotBlank(message = "Google ID token is required.")
+    private String idToken;
 }
