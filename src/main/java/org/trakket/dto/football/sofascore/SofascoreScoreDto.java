@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SofaScoreDto {
+public class SofascoreScoreDto {
     private Integer current;
 }

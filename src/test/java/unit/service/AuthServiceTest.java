@@ -95,7 +95,7 @@ public class AuthServiceTest {
         LoginResponse response = authService.authenticate(loginRequest, httpServletResponse);
 
         assertNotNull(response);
-        assertEquals("testUser", response.getName());
+        assertEquals("testUser", response.getEmail());
         assertEquals(123456789L, response.getExpiresAt());
 
         verify(httpServletResponse, times(1)).addCookie(argThat(cookie ->
@@ -136,7 +136,7 @@ public class AuthServiceTest {
 
         // Assert: response
         assertNotNull(response);
-        assertEquals(GOOGLE_EMAIL, response.getName());
+        assertEquals(GOOGLE_EMAIL, response.getEmail());
         assertEquals(JWT_EXPIRY, response.getExpiresAt());
 
         // Assert: user saved with correct fields
@@ -180,7 +180,7 @@ public class AuthServiceTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals(GOOGLE_EMAIL, response.getName());
+        assertEquals(GOOGLE_EMAIL, response.getEmail());
 
         // Should not save (email hasn't changed)
         verify(userRepository, never()).save(any(User.class));
@@ -208,7 +208,7 @@ public class AuthServiceTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals(newEmail, response.getName());
+        assertEquals(newEmail, response.getEmail());
 
         // Email and username should be updated
         assertEquals(newEmail, existingUser.getEmail());

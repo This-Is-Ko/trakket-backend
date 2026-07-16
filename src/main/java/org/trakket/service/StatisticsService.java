@@ -14,7 +14,7 @@ import org.trakket.dto.statistics.TeamStat;
 import org.trakket.enums.WatchedStatus;
 import org.trakket.mapper.FootballEventMapper;
 import org.trakket.mapper.MotorsportEventMapper;
-import org.trakket.model.EventWatchStatus;
+import org.trakket.model.FootballEventWatchStatus;
 import org.trakket.model.MotorsportEventWatchStatus;
 import org.trakket.model.User;
 import org.trakket.repository.CircuitCount;
@@ -51,7 +51,7 @@ public class StatisticsService {
         }
 
         // Football statistics
-        Map<WatchedStatus, Long> footballStatusDistribution = getWatchStatusDistribution(user, footballEventWatchStatusRepository);
+        Map<WatchedStatus, Long> footballStatusDistribution = getFootballStatusDistribution(user);
         Map<String, Long> footballMatchesPerCompetition = getFootballMatchesPerCompetition(user);
 
         List<FootballEventWithStatus> recentMatches = footballEventWatchStatusRepository
@@ -61,8 +61,6 @@ public class StatisticsService {
                 .toList();
 
         List<TeamStat> topTeams = getTopWatchedTeams(user, 10);
-        // example: to compute percentage for a particular team and season:
-        // double percent = getTeamSeasonWatchPercentage(user, teamId, seasonString);
 
         StatisticsFootball footballStatistics = new StatisticsFootball(
                 footballStatusDistribution,
@@ -72,7 +70,7 @@ public class StatisticsService {
         );
 
         // Motorsport statistics
-        Map<WatchedStatus, Long> motorsportStatusDistribution = getWatchStatusDistribution(user, motorsportEventWatchStatusRepository);
+        Map<WatchedStatus, Long> motorsportStatusDistribution = getMotorsportStatusDistribution(user);
         Map<String, Long> motorsportRacesPerCompetition = getMotorsportRacesPerCompetition(user);
 
         List<MotorsportEventWithStatus> recentRaces = motorsportEventWatchStatusRepository
@@ -99,7 +97,6 @@ public class StatisticsService {
         Map<String, Long> sportsMix = getSportMix(user);
         StatisticsOverall overall = new StatisticsOverall(overallWatchStatusDistribution, sportsMix);
 
-
         return new StatisticsResponse(
                 overall,
                 footballStatistics,
@@ -107,12 +104,22 @@ public class StatisticsService {
         );
     }
 
-    private <T extends EventWatchStatus> Map<WatchedStatus, Long> getWatchStatusDistribution(User user, org.springframework.data.jpa.repository.JpaRepository<T, ?> repository) {
-        if (user == null) return Collections.emptyMap();
+    private Map<WatchedStatus, Long> getFootballStatusDistribution(User user) {
+        Map<WatchedStatus, Long> distribution = footballEventWatchStatusRepository.findAllByUser(user).stream()
+                .map(FootballEventWatchStatus::getStatus)
+                .filter(status -> status != WatchedStatus.UNWATCHED)
+                .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
 
-        Map<WatchedStatus, Long> distribution = repository.findAll().stream()
-                .filter(ws -> ws.getUser().equals(user))
-                .map(org.trakket.model.EventWatchStatus::getStatus)
+        for (WatchedStatus status : WatchedStatus.values()) {
+            if (status != WatchedStatus.UNWATCHED) distribution.putIfAbsent(status, 0L);
+        }
+
+        return distribution;
+    }
+
+    private Map<WatchedStatus, Long> getMotorsportStatusDistribution(User user) {
+        Map<WatchedStatus, Long> distribution = motorsportEventWatchStatusRepository.findAllByUser(user).stream()
+                .map(MotorsportEventWatchStatus::getStatus)
                 .filter(status -> status != WatchedStatus.UNWATCHED)
                 .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
 
@@ -197,9 +204,8 @@ public class StatisticsService {
      * This method returns a map: season -> percentage (0..100)
      */
     private Map<Integer, Double> getMotorsportSeasonCoverage(User user) {
-        // Fetch watched statuses for the user and group by event.season
-        List<MotorsportEventWatchStatus> watchedStatuses = motorsportEventWatchStatusRepository.findAll().stream()
-                .filter(ws -> ws.getUser().equals(user) && ws.getStatus() != WatchedStatus.UNWATCHED)
+        List<MotorsportEventWatchStatus> watchedStatuses = motorsportEventWatchStatusRepository.findAllByUser(user).stream()
+                .filter(ws -> ws.getStatus() != WatchedStatus.UNWATCHED)
                 .toList();
 
         Map<Integer, Long> watchedPerSeason = watchedStatuses.stream()
@@ -248,6 +254,5 @@ public class StatisticsService {
                         cc -> cc.getCompetition().getDisplayName(),
                         MotorsportCompetitionCount::getCnt
                 ));
-
-        }
+    }
 }

@@ -36,12 +36,13 @@ public class MotorsportEventService implements EventService<MotorsportEvent> {
 
     @Override
     public MotorsportEvent getEventById(Long id) {
-        return null;
+        return motorsportEventRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("MotorsportEvent not found with id " + id));
     }
 
     @Override
     public List<MotorsportEvent> getAllEvents() {
-        return null;
+        return motorsportEventRepository.findAll();
     }
 
     @Override
@@ -52,6 +53,10 @@ public class MotorsportEventService implements EventService<MotorsportEvent> {
 
     @Override
     public void deleteEvent(Long id) {
+        if (!motorsportEventRepository.existsById(id)) {
+            throw new EntityNotFoundException("MotorsportEvent not found with id " + id);
+        }
+        motorsportEventRepository.deleteById(id);
     }
 
     private Page<MotorsportEvent> getEventPage(Integer page, Integer pageSize, MotorsportCompetition competition, EventStatus status, Boolean ascending) {
@@ -97,13 +102,11 @@ public class MotorsportEventService implements EventService<MotorsportEvent> {
                     })
                     .toList());
         } else {
-            // Map eventId -> WatchedStatus for the current user
             List<Long> eventIds = eventPage.stream()
                     .map(MotorsportEvent::getId)
                     .toList();
 
-            Map<Long, WatchedStatus> statusMap = watchStatusRepository.findAll().stream() // Replace with custom method if needed
-                    .filter(ws -> ws.getUser().equals(user) && eventIds.contains(ws.getEvent().getId()))
+            Map<Long, WatchedStatus> statusMap = watchStatusRepository.findByUserAndEventIdIn(user, eventIds).stream()
                     .collect(Collectors.toMap(
                             ws -> ws.getEvent().getId(),
                             MotorsportEventWatchStatus::getStatus

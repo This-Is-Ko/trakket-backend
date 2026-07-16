@@ -3,12 +3,8 @@ package org.trakket.service.discord;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.trakket.enums.MotorsportCompetition;
 
 import java.util.Map;
 
@@ -32,15 +28,10 @@ public class DiscordAlertService {
             return;
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
         Map<String, Object> payload = Map.of(
                 "username", BOT_USERNAME,
                 "content", message
         );
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
         try {
             discordWebClient.post()

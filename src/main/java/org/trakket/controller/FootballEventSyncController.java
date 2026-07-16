@@ -14,7 +14,7 @@ import org.trakket.service.football.sofascore.SofascoreEventSyncService;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/football/sync")
-public class FootballEventSyncController implements EventSyncController {
+public class FootballEventSyncController {
 
     private final FantasyPremierLeagueEventSyncService fantasyPremierLeagueEventSyncService;
     private final SofascoreEventSyncService sofascoreEventSyncService;
@@ -46,7 +46,7 @@ public class FootballEventSyncController implements EventSyncController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/sofascore/all")
-    public ResponseEntity<String> syncEventsWithSofascore() {
+    public ResponseEntity<String> syncAllEventsWithSofascore() {
         try {
             sofascoreEventSyncService.syncEvents();
             return ResponseEntity.ok("Events synced successfully");

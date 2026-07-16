@@ -28,7 +28,7 @@ public enum FootballCompetition {
     WORLD_CUP_WOMEN("World Cup F", Gender.F);
 
     private final String displayName;
-    private Gender gender;
+    private final Gender gender;
 
     FootballCompetition(String displayName, Gender gender) {
         this.displayName = displayName;

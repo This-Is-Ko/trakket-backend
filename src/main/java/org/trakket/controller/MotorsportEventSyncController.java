@@ -13,7 +13,7 @@ import org.trakket.service.motorsport.MotorsportSyncService;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/motorsport/sync")
-public class MotorsportEventSyncController implements EventSyncController{
+public class MotorsportEventSyncController {
 
     private final MotorsportSyncService motorsportSyncService;
 

@@ -1,8 +1,10 @@
 package org.trakket.converter;
 
+import org.springframework.stereotype.Component;
 import org.trakket.enums.MotorsportCompetition;
 import org.springframework.core.convert.converter.Converter;
 
+@Component
 public class StringToMotorsportCompetitionConverter implements Converter<String, MotorsportCompetition> {
     @Override
     public MotorsportCompetition convert(String source) {
