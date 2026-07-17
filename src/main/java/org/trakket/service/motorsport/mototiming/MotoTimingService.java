@@ -2,6 +2,7 @@ package org.trakket.service.motorsport.mototiming;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -33,6 +34,9 @@ public class MotoTimingService {
     private final WebClient motoTimingWebClient;
     private final MotorsportEventRepository eventRepository;
 
+    @Value("${motorsport.sync.season}")
+    private Integer season;
+
     public MotoTimingService(@Qualifier("motoTimingWebClient") WebClient motoTimingWebClient,
                              MotorsportEventRepository eventRepository) {
         this.motoTimingWebClient = motoTimingWebClient;
@@ -50,7 +54,6 @@ public class MotoTimingService {
         }
         log.info("Updating results {} events from MotoTiming", competition.getDisplayName());
 
-        Integer season = 2025;
         MotoTimingResultsResponse resp = motoTimingWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/results")
