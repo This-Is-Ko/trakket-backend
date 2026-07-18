@@ -16,6 +16,7 @@ import org.trakket.enums.UserRole;
 import org.trakket.exception.GoogleAuthException;
 import org.trakket.model.User;
 import org.trakket.repository.UserRepository;
+import org.trakket.security.AuthUser;
 import org.trakket.service.auth.AuthService;
 import org.trakket.service.auth.GoogleTokenVerifier;
 import org.trakket.service.auth.JwtTokenService;
@@ -86,9 +87,15 @@ public class AuthServiceTest {
 
     @Test
     void authenticate_ShouldReturnLoginResponseAndSetCookie_WhenCredentialsValid() {
+        User testUser = new User();
+        testUser.setEmail("testUser");
+        testUser.setUsername("testUser");
+        testUser.setRole(UserRole.ROLE_USER);
+        AuthUser authUser = new AuthUser(testUser);
+
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
-        when(authentication.getName()).thenReturn("testUser");
+        when(authentication.getPrincipal()).thenReturn(authUser);
         when(jwtTokenService.generateToken(authentication)).thenReturn("jwtToken123");
         when(jwtTokenService.extractExpirationTime("jwtToken123")).thenReturn(123456789L);
 
@@ -96,6 +103,7 @@ public class AuthServiceTest {
 
         assertNotNull(response);
         assertEquals("testUser", response.getEmail());
+        assertEquals("testUser", response.getUsername());
         assertEquals(123456789L, response.getExpiresAt());
 
         verify(httpServletResponse, times(1)).addCookie(argThat(cookie ->
@@ -120,6 +128,7 @@ public class AuthServiceTest {
         when(googleTokenVerifier.verify("google-id-token")).thenReturn(googlePayload);
         when(googlePayload.getSubject()).thenReturn(GOOGLE_ID);
         when(googlePayload.getEmail()).thenReturn(GOOGLE_EMAIL);
+        when(googlePayload.get("given_name")).thenReturn("John");
         when(userRepository.findByGoogleId(GOOGLE_ID)).thenReturn(Optional.empty());
         when(userRepository.findByEmail(GOOGLE_EMAIL)).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("encoded-random-password");
@@ -137,12 +146,13 @@ public class AuthServiceTest {
         // Assert: response
         assertNotNull(response);
         assertEquals(GOOGLE_EMAIL, response.getEmail());
+        assertEquals("John", response.getUsername());
         assertEquals(JWT_EXPIRY, response.getExpiresAt());
 
         // Assert: user saved with correct fields
         verify(userRepository, times(1)).save(argThat(user ->
                 GOOGLE_EMAIL.equals(user.getEmail()) &&
-                        GOOGLE_EMAIL.equals(user.getUsername()) &&
+                        "John".equals(user.getUsername()) &&
                         GOOGLE_ID.equals(user.getGoogleId()) &&
                         user.getProvider() == AuthProvider.GOOGLE &&
                         user.getRole() == UserRole.ROLE_USER &&
@@ -165,7 +175,7 @@ public class AuthServiceTest {
     @Test
     void googleLogin_ShouldReturnExistingUser_WhenGoogleIdMatches() {
         // Arrange: user exists by googleId, same email
-        User existingUser = createGoogleUser(1L, GOOGLE_ID, GOOGLE_EMAIL);
+        User existingUser = createGoogleUser(1L, GOOGLE_ID, GOOGLE_EMAIL, "John");
 
         GoogleLoginRequest request = new GoogleLoginRequest("google-id-token");
         when(googleTokenVerifier.verify("google-id-token")).thenReturn(googlePayload);
@@ -181,6 +191,7 @@ public class AuthServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(GOOGLE_EMAIL, response.getEmail());
+        assertEquals("John", response.getUsername());
 
         // Should not save (email hasn't changed)
         verify(userRepository, never()).save(any(User.class));
@@ -192,7 +203,7 @@ public class AuthServiceTest {
     @Test
     void googleLogin_ShouldUpdateEmail_WhenGoogleUserChangedEmail() {
         // Arrange: user exists by googleId, but with a different (old) email
-        User existingUser = createGoogleUser(1L, GOOGLE_ID, "old@gmail.com");
+        User existingUser = createGoogleUser(1L, GOOGLE_ID, "old@gmail.com", "John");
         String newEmail = "new@gmail.com";
 
         GoogleLoginRequest request = new GoogleLoginRequest("google-id-token");
@@ -209,10 +220,11 @@ public class AuthServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(newEmail, response.getEmail());
+        assertEquals("John", response.getUsername());
 
-        // Email and username should be updated
+        // Email should be updated, but username should stay as the original given name
         assertEquals(newEmail, existingUser.getEmail());
-        assertEquals(newEmail, existingUser.getUsername());
+        assertEquals("John", existingUser.getUsername());
         verify(userRepository, times(1)).save(existingUser);
     }
 
@@ -267,11 +279,11 @@ public class AuthServiceTest {
 
     // ─── helpers ────────────────────────────────────────────────────────────
 
-    private User createGoogleUser(Long id, String googleId, String email) {
+    private User createGoogleUser(Long id, String googleId, String email, String username) {
         User user = new User();
         user.setId(id);
         user.setEmail(email);
-        user.setUsername(email);
+        user.setUsername(username);
         user.setGoogleId(googleId);
         user.setProvider(AuthProvider.GOOGLE);
         user.setRole(UserRole.ROLE_USER);
