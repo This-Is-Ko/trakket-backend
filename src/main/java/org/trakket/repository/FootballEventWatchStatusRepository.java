@@ -72,6 +72,21 @@ public interface FootballEventWatchStatusRepository extends JpaRepository<Footba
             @Param("excluded") WatchedStatus excluded
     );
 
+    @Query("""
+        SELECT COUNT(ws)
+        FROM FootballEventWatchStatus ws
+        JOIN ws.event fe
+        WHERE ws.user = :user AND ws.status <> :excluded
+          AND (fe.homeTeam.id = :teamId OR fe.awayTeam.id = :teamId)
+          AND YEAR(fe.dateTime) = :season
+        """)
+    Long countWatchedMatchesForTeamInYear(
+            @Param("user") User user,
+            @Param("teamId") Long teamId,
+            @Param("excluded") WatchedStatus excluded,
+            @Param("season") int season
+    );
+
     // Count of watched events (helper)
     @Query("SELECT COUNT(ws) FROM FootballEventWatchStatus ws WHERE ws.user = :user AND ws.status <> :excluded")
     Long countWatchedByUser(@Param("user") User user, @Param("excluded") WatchedStatus excluded);

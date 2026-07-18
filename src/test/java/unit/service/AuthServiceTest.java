@@ -275,6 +275,29 @@ public class AuthServiceTest {
                 () -> authService.authenticateWithGoogle(request, httpServletResponse));
 
         assertTrue(exception.getMessage().contains("already exists"));
+
+    }
+
+
+
+    @Test
+    void googleLogin_ShouldFixStaleUsername_WhenUsernameEqualsEmail() {
+        User legacyUser = createGoogleUser(1L, GOOGLE_ID, GOOGLE_EMAIL, GOOGLE_EMAIL);
+
+        GoogleLoginRequest request = new GoogleLoginRequest("google-id-token");
+        when(googleTokenVerifier.verify("google-id-token")).thenReturn(googlePayload);
+        when(googlePayload.getSubject()).thenReturn(GOOGLE_ID);
+        when(googlePayload.getEmail()).thenReturn(GOOGLE_EMAIL);
+        when(googlePayload.get("given_name")).thenReturn("John");
+        when(userRepository.findByGoogleId(GOOGLE_ID)).thenReturn(Optional.of(legacyUser));
+        when(jwtTokenService.generateTokenForUser(legacyUser)).thenReturn(JWT_TOKEN);
+        when(jwtTokenService.extractExpirationTime(JWT_TOKEN)).thenReturn(JWT_EXPIRY);
+
+        LoginResponse response = authService.authenticateWithGoogle(request, httpServletResponse);
+
+        assertEquals("John", response.getUsername());
+        assertEquals("John", legacyUser.getUsername());
+        verify(userRepository, times(1)).save(legacyUser);
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────

@@ -61,16 +61,26 @@ public class AuthService {
         Optional<User> existingByGoogleId = userRepository.findByGoogleId(googleId);
         if (existingByGoogleId.isPresent()) {
             User user = existingByGoogleId.get();
+
+            boolean changed = false;
+
             // Keep the email current — Google allows account email changes
-            // Don't overwrite username — it may have been set from Google given name
             if (!user.getEmail().equals(email)) {
                 user.setEmail(email);
-                userRepository.save(user);
-                log.atInfo().setMessage("Google login: updated email for user {} from {} to {}")
-                        .addArgument(googleId)
-                        .addArgument(user.getEmail())
+                changed = true;
+                log.atInfo().setMessage("Google login: updated email for user to {}")
                         .addArgument(email)
                         .log();
+            }
+
+            // Fix stale username: users created before the givenName fix have username == email
+            if (givenName != null && !givenName.isBlank() && user.getUsername().equals(user.getEmail())) {
+                user.setUsername(givenName);
+                changed = true;
+            }
+
+            if (changed) {
+                userRepository.save(user);
             }
             String jwtToken = jwtTokenService.generateTokenForUser(user);
             Long expiresAt = jwtTokenService.extractExpirationTime(jwtToken);
