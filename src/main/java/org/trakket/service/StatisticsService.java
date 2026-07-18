@@ -11,6 +11,7 @@ import org.trakket.dto.statistics.StatisticsMotorsport;
 import org.trakket.dto.statistics.StatisticsOverall;
 import org.trakket.dto.statistics.StatisticsResponse;
 import org.trakket.dto.statistics.TeamStat;
+import org.trakket.enums.MotorsportCompetition;
 import org.trakket.enums.WatchedStatus;
 import org.trakket.mapper.FootballEventMapper;
 import org.trakket.mapper.MotorsportEventMapper;
@@ -62,11 +63,14 @@ public class StatisticsService {
 
         List<TeamStat> topTeams = getTopWatchedTeams(user, 10);
 
+        Map<String, Map<Integer, Double>> teamSeasonCoverage = getTeamSeasonCoverage(user, topTeams);
+
         StatisticsFootball footballStatistics = new StatisticsFootball(
                 footballStatusDistribution,
                 footballMatchesPerCompetition,
                 recentMatches,
-                topTeams
+                topTeams,
+                teamSeasonCoverage
         );
 
         // Motorsport statistics
@@ -79,7 +83,7 @@ public class StatisticsService {
                 .map(ws -> new MotorsportEventWithStatus(MotorsportEventMapper.toDto(ws.getEvent()), ws.getStatus()))
                 .toList();
 
-        Map<Integer, Double> motorsportSeasonCoverage = getMotorsportSeasonCoverage(user);
+        Map<String, Map<Integer, Double>> motorsportSeasonCoverage = getMotorsportSeasonCoverage(user);
 
         StatisticsMotorsport statisticsMotorsport = new StatisticsMotorsport(
                 motorsportStatusDistribution,
@@ -179,6 +183,31 @@ public class StatisticsService {
      * Percentage of a team's matches watched by user in a season.
      * Returns a value in [0..100]. If there are no matches for that team in the season, returns 0.0.
      */
+    private Map<String, Map<Integer, Double>> getTeamSeasonCoverage(User user, List<TeamStat> topTeams) {
+        Map<String, Map<Integer, Double>> result = new LinkedHashMap<>();
+        for (TeamStat team : topTeams) {
+            Long teamId = team.teamId();
+            List<Integer> seasons = footballEventRepository.getSeasonsForTeam(teamId);
+            Map<Integer, Double> seasonCoverage = new LinkedHashMap<>();
+            for (int season : seasons) {
+                Long totalMatches = Optional.ofNullable(
+                        footballEventRepository.countMatchesForTeamInYear(teamId, season)
+                ).orElse(0L);
+                if (totalMatches == 0) continue;
+                Long watchedMatches = Optional.ofNullable(
+                        footballEventWatchStatusRepository.countWatchedMatchesForTeamInYear(
+                                user, teamId, WatchedStatus.UNWATCHED, season)
+                ).orElse(0L);
+                double pct = 100.0 * watchedMatches / totalMatches;
+                seasonCoverage.put(season, pct);
+            }
+            if (!seasonCoverage.isEmpty()) {
+                result.put(team.teamName(), seasonCoverage);
+            }
+        }
+        return result;
+    }
+
     private double getTeamSeasonWatchPercentage(User user, Long teamId, String season) {
         Long totalMatches = Optional.ofNullable(footballEventRepository.countMatchesForTeamInSeason(teamId)).orElse(0L);
         if (totalMatches == 0) return 0.0;
@@ -203,25 +232,38 @@ public class StatisticsService {
      * compute watched count and optionally the % of that season that the user watched.
      * This method returns a map: season -> percentage (0..100)
      */
-    private Map<Integer, Double> getMotorsportSeasonCoverage(User user) {
+    private Map<String, Map<Integer, Double>> getMotorsportSeasonCoverage(User user) {
         List<MotorsportEventWatchStatus> watchedStatuses = motorsportEventWatchStatusRepository.findAllByUser(user).stream()
                 .filter(ws -> ws.getStatus() != WatchedStatus.UNWATCHED)
+                .filter(ws -> ws.getEvent() != null && ws.getEvent().getSeason() != null && ws.getEvent().getCompetition() != null)
                 .toList();
 
-        Map<Integer, Long> watchedPerSeason = watchedStatuses.stream()
-                .filter(ws -> ws.getEvent() != null && ws.getEvent().getSeason() != null)
-                .collect(Collectors.groupingBy(ws -> ws.getEvent().getSeason(), Collectors.counting()));
+        // Group by competition, then season
+        Map<MotorsportCompetition, Map<Integer, Long>> raw = watchedStatuses.stream()
+                .collect(Collectors.groupingBy(
+                        ws -> ws.getEvent().getCompetition(),
+                        Collectors.groupingBy(ws -> ws.getEvent().getSeason(), Collectors.counting())
+                ));
 
-        Map<Integer, Double> pctPerSeason = new LinkedHashMap<>();
-        for (Map.Entry<Integer, Long> e : watchedPerSeason.entrySet()) {
-            Integer season = e.getKey();
-            Long watchedCount = e.getValue();
-            Long totalRaces = Optional.ofNullable(motorsportEventRepository.countRacesInSeason(season)).orElse(0L);
-            double pct = totalRaces == 0 ? 0.0 : (100.0 * watchedCount / totalRaces);
-            pctPerSeason.put(season, pct);
+        Map<String, Map<Integer, Double>> result = new LinkedHashMap<>();
+        for (Map.Entry<MotorsportCompetition, Map<Integer, Long>> compEntry : raw.entrySet()) {
+            String compName = compEntry.getKey().getDisplayName();
+            Map<Integer, Double> pctPerSeason = new LinkedHashMap<>();
+
+            for (Map.Entry<Integer, Long> seasonEntry : compEntry.getValue().entrySet()) {
+                Integer season = seasonEntry.getKey();
+                Long watchedCount = seasonEntry.getValue();
+                Long totalRaces = Optional.ofNullable(
+                        motorsportEventRepository.countRacesInSeasonForCompetition(season, compEntry.getKey())
+                ).orElse(0L);
+                double pct = totalRaces == 0 ? 0.0 : (100.0 * watchedCount / totalRaces);
+                pctPerSeason.put(season, pct);
+            }
+
+            result.put(compName, pctPerSeason);
         }
 
-        return pctPerSeason;
+        return result;
     }
 
     // builder to aggregate team totals

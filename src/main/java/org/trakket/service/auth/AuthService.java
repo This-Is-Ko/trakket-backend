@@ -14,6 +14,7 @@ import org.trakket.enums.UserRole;
 import org.trakket.exception.GoogleAuthException;
 import org.trakket.model.User;
 import org.trakket.repository.UserRepository;
+import org.trakket.security.AuthUser;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -44,7 +45,8 @@ public class AuthService {
 
         setJwtCookie(response, jwtToken, expiresAt);
 
-        return new LoginResponse(authentication.getName(), expiresAt);
+        AuthUser authUser = (AuthUser) authentication.getPrincipal();
+        return new LoginResponse(authUser.getUser().getEmail(), expiresAt, authUser.getUser().getUsername());
     }
 
     @Transactional
@@ -53,27 +55,38 @@ public class AuthService {
 
         String googleId = payload.getSubject();
         String email = payload.getEmail();
+        String givenName = (String) payload.get("given_name");
 
         // Check if user already exists by Google ID (sub claim — stable across email changes)
         Optional<User> existingByGoogleId = userRepository.findByGoogleId(googleId);
         if (existingByGoogleId.isPresent()) {
             User user = existingByGoogleId.get();
+
+            boolean changed = false;
+
             // Keep the email current — Google allows account email changes
             if (!user.getEmail().equals(email)) {
                 user.setEmail(email);
-                user.setUsername(email);
-                userRepository.save(user);
-                log.atInfo().setMessage("Google login: updated email for user {} from {} to {}")
-                        .addArgument(googleId)
-                        .addArgument(user.getEmail())
+                changed = true;
+                log.atInfo().setMessage("Google login: updated email for user to {}")
                         .addArgument(email)
                         .log();
+            }
+
+            // Fix stale username: users created before the givenName fix have username == email
+            if (givenName != null && !givenName.isBlank() && user.getUsername().equals(user.getEmail())) {
+                user.setUsername(givenName);
+                changed = true;
+            }
+
+            if (changed) {
+                userRepository.save(user);
             }
             String jwtToken = jwtTokenService.generateTokenForUser(user);
             Long expiresAt = jwtTokenService.extractExpirationTime(jwtToken);
             setJwtCookie(response, jwtToken, expiresAt);
             log.atInfo().setMessage("Google login: existing Google user {}").addArgument(user.getEmail()).log();
-            return new LoginResponse(user.getEmail(), expiresAt);
+            return new LoginResponse(user.getEmail(), expiresAt, user.getUsername());
         }
 
         // Check if email already registered (conflict with existing email/password user)
@@ -90,9 +103,10 @@ public class AuthService {
             throw new GoogleAuthException("An account with this email already exists.");
         }
 
-        // Create new user — email is guaranteed unique (checked above), so reuse it as username
+        // Create new user — use Google given name as username, fallback to email
+        String username = (givenName != null && !givenName.isBlank()) ? givenName : email;
         User newUser = new User();
-        newUser.setUsername(email);
+        newUser.setUsername(username);
         newUser.setEmail(email);
         newUser.setGoogleId(googleId);
         newUser.setProvider(AuthProvider.GOOGLE);
@@ -106,7 +120,7 @@ public class AuthService {
         setJwtCookie(response, jwtToken, expiresAt);
 
         log.atInfo().setMessage("Google login: new user created {}").addArgument(newUser.getEmail()).log();
-        return new LoginResponse(newUser.getEmail(), expiresAt);
+        return new LoginResponse(newUser.getEmail(), expiresAt, newUser.getUsername());
     }
 
     public void logout(HttpServletResponse response) {
@@ -123,6 +137,7 @@ public class AuthService {
         User user = (User) authentication.getDetails();
 
         return new UserInfoResponse(
+                user.getEmail(),
                 user.getUsername()
         );
     }

@@ -10,5 +10,5 @@ public record StatisticsMotorsport(
         Map<WatchedStatus, Long> watchStatusDistribution,
         Map<String, Long> watchedEventsPerCompetition,
         List<MotorsportEventWithStatus> recentEvents,
-        Map<Integer, Double> motorsportSeasonCoverage
+        Map<String, Map<Integer, Double>> motorsportSeasonCoverage
 ) {}

@@ -10,5 +10,6 @@ public record StatisticsFootball(
         Map<WatchedStatus, Long> watchStatusDistribution,
         Map<String, Long> perCompetition,
         List<FootballEventWithStatus> recentEvents,
-        List<TeamStat> topTeams
+        List<TeamStat> topTeams,
+        Map<String, Map<Integer, Double>> teamSeasonCoverage
 ) {}
