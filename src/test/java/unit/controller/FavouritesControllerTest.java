@@ -112,7 +112,7 @@ public class FavouritesControllerTest {
         )).thenReturn(expected);
 
         FavouriteEventsResponse response = controller.getFavouriteEvents(
-                authentication, null, null, null, null, null, null, null, null);
+                authentication, 0, 12, null, null, null, null, null, false);
 
         assertEquals(expected, response);
         verify(favouritesService, times(1)).getFavouriteEvents(
