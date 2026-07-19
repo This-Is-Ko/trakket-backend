@@ -15,6 +15,7 @@ import org.trakket.exception.GoogleAuthException;
 import org.trakket.model.User;
 import org.trakket.repository.UserRepository;
 import org.trakket.security.AuthUser;
+import org.trakket.service.ConsentService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -35,6 +36,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final ConsentService consentService;
 
     public LoginResponse authenticate(LoginRequest authRequest, HttpServletResponse response) {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(authRequest.getEmail(), authRequest.getPassword());
@@ -139,7 +141,8 @@ public class AuthService {
         return new UserInfoResponse(
                 user.getEmail(),
                 user.getUsername(),
-                user.getRole().name()
+                user.getRole().name(),
+                consentService.getConsent(user)
         );
     }
 
