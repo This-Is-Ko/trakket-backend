@@ -216,7 +216,10 @@ public class FavouritesService {
 
         int start = page * pageSize;
         if (start >= unified.size()) {
-            return new FavouriteEventsResponse(List.of(), page, pageSize, totalElements, true);
+            // Our in-memory snapshot is exhausted, but there may be more events in the DB
+            // that we didn't fetch (fetchSize limits what we load).
+            boolean last = unified.size() >= totalElements;
+            return new FavouriteEventsResponse(List.of(), page, pageSize, totalElements, last);
         }
         int end = Math.min(start + pageSize, unified.size());
         List<UnifiedEntry> pageEntries = unified.subList(start, end);
@@ -240,7 +243,9 @@ public class FavouritesService {
             }
         }
 
-        boolean last = end >= unified.size();
+        // We've reached the end of our in-memory snapshot. We're only truly at the last
+        // page if we also fetched everything from the DB (fetchSize caps what we load).
+        boolean last = end >= unified.size() && unified.size() >= totalElements;
 
         return new FavouriteEventsResponse(events, page, pageSize, totalElements, last);
     }
