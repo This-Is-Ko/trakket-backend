@@ -39,10 +39,21 @@ public class SportsDbService {
 
     private static final Pattern WINNER_LINE = Pattern.compile("(?m)^[ \\t]*1\\s*/([^/\\r\\n]+)");
 
-    // Due to restrictions on TheSportsDb free, only competitions with less than 15 events in a season should use this
+    // Sub-session keywords used to filter out non-race sessions (practice, qualifying, etc.)
+    private static final Pattern SUB_SESSION_PATTERN = Pattern.compile(
+            "(?i)(free practice|qualifying|hyperpole|prologue|sprint race|warm.?up|warmup|shakedown)"
+    );
+
+    // Max rounds to iterate; iteration stops early when a round returns no events
+    private static final int MAX_ROUNDS = 30;
+
+    // Events whose datetime is more than this far in the past are marked COMPLETED
+    // even if the API returns no result data (e.g. free tier limitations)
+    private static final long COMPLETED_THRESHOLD_HOURS = 24;
+
     private final Map<MotorsportCompetition, SportsDbMetadata> competitionMapping = Map.ofEntries(
-            Map.entry(MotorsportCompetition.WORLD_ENDURANCE_CHAMPIONSHIP, new SportsDbMetadata(4413, "2025")),
-            Map.entry(MotorsportCompetition.MOTOGP,  new SportsDbMetadata(4407, "2025")),
+            Map.entry(MotorsportCompetition.WORLD_ENDURANCE_CHAMPIONSHIP, new SportsDbMetadata(4413, "2026")),
+            Map.entry(MotorsportCompetition.MOTOGP,  new SportsDbMetadata(4407, "2026")),
             Map.entry(MotorsportCompetition.FORMULA_E,  new SportsDbMetadata(4371, "2025-2026"))
     );
 
@@ -55,74 +66,146 @@ public class SportsDbService {
             log.error("Unable to import season events - competition is null");
             throw new IllegalArgumentException("Competition is null");
         }
-        log.info("Importing {} events", competition.getDisplayName());
         SportsDbMetadata metadata = competitionMapping.get(competition);
         if (metadata == null) {
             log.error("Unable to import season events - no metadata found for competition {}", competition);
             throw new RuntimeException("No metadata found for competition");
         }
         Integer leagueId = metadata.getCompetitionId();
-        SportsDbEventsSeasonResponse resp = sportsDbWebClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/eventsseason.php")
-                        .queryParam("id", leagueId)
-                        .build())
-                .retrieve()
-                .onStatus(HttpStatusCode::isError,
-                        response -> response.bodyToMono(String.class)
-                                .flatMap(body -> Mono.error(new RuntimeException("TheSportsDB error: " + body))))
-                .bodyToMono(SportsDbEventsSeasonResponse.class)
-                .block();
+        String season = metadata.getSeason();
+        log.info("Importing {} events for season {} from TheSportsDB", competition.getDisplayName(), season);
 
-        if (resp == null || resp.getEvents() == null) {
-            log.info("No {} events found in TheSportsDb", competition.getDisplayName());
-            throw new RuntimeException("No TheSportsDb events found");
-        }
+        int importedCount = 0;
+        int skippedCount = 0;
+        int lastRound = 0;
 
-        for (SportsDbEventDto dto : resp.getEvents()) {
+        for (int r = 1; r <= MAX_ROUNDS; r++) {
+            final int round = r;
+            SportsDbEventsSeasonResponse resp;
             try {
-                upsertFromDto(dto, competition);
+                resp = sportsDbWebClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/eventsround.php")
+                                .queryParam("id", leagueId)
+                                .queryParam("s", season)
+                                .queryParam("r", round)
+                                .build())
+                        .retrieve()
+                        .onStatus(HttpStatusCode::isError,
+                                response -> response.bodyToMono(String.class)
+                                        .flatMap(body -> Mono.error(new RuntimeException("TheSportsDB round error: " + body))))
+                        .bodyToMono(SportsDbEventsSeasonResponse.class)
+                        .block();
             } catch (Exception e) {
-                log.error("Failed to import {} event {}: {}", competition.getDisplayName(), dto.getIdEvent(), e.getMessage());
+                log.warn("Failed to fetch {} round {}: {}", competition.getDisplayName(), round, e.getMessage());
+                break;
+            }
+
+            if (resp == null || resp.getEvents() == null || resp.getEvents().isEmpty()) {
+                log.debug("No more events for {} after round {}", competition.getDisplayName(), round - 1);
+                break;
+            }
+
+            lastRound = round;
+
+            for (SportsDbEventDto dto : resp.getEvents()) {
+                String name = dto.getStrEvent();
+                if (name == null || SUB_SESSION_PATTERN.matcher(name).find()) {
+                    skippedCount++;
+                    continue;
+                }
+
+                log.info("Processing {} round {}: \"{}\" {}",
+                        competition.getDisplayName(), round, name,
+                        dto.getStrResult() != null && !dto.getStrResult().isBlank() ? "(has result)" : "");
+
+                try {
+                    upsertFromDto(dto, competition);
+                    importedCount++;
+                } catch (Exception e) {
+                    log.error("Failed to import {} round {} \"{}\": {}",
+                            competition.getDisplayName(), round, name, e.getMessage());
+                }
             }
         }
+
+        log.info("Finished importing {} season {}: {} main races imported, {} sub-sessions skipped (rounds 1-{})",
+                competition.getDisplayName(), season, importedCount, skippedCount, lastRound);
     }
 
     private void upsertFromDto(SportsDbEventDto dto, MotorsportCompetition competition) {
-        Long extId = parseLongSafe(dto.getIdEvent());
-        Optional<MotorsportEvent> existing = eventRepository.findByExternalSourceAndExternalSourceId(
-                ExternalMotorsportSource.THESPORTSDB, extId);
+        Integer round = parseIntSafe(dto.getIntRound());
+        Integer season = parseIntSafe(dto.getStrSeason());
+        if (round == null || season == null) {
+            log.warn("Skipping {} event \"{}\" (id={}) due to missing round or season",
+                    competition.getDisplayName(), dto.getStrEvent(), dto.getIdEvent());
+            return;
+        }
 
+        Optional<MotorsportEvent> existing = eventRepository.findByCompetitionAndSeasonAndRound(
+                competition, season, round);
+
+        boolean isNew = existing.isEmpty();
         MotorsportEvent event = existing.orElseGet(MotorsportEvent::new);
 
-        if (event.getStatus() == EventStatus.COMPLETED) {
+        // do not update completed events unless we have result data (e.g. winner) to set
+        if (!isNew && event.getStatus() == EventStatus.COMPLETED
+                && (dto.getStrResult() == null || dto.getStrResult().isBlank())) {
+            log.info("Skipping {} round {} \"{}\" - already COMPLETED with no new result data",
+                    competition.getDisplayName(), round, dto.getStrEvent());
             return;
         }
 
         event.setCompetition(competition);
-        event.setSeason(parseIntSafe(dto.getStrSeason()));
+        event.setSeason(season);
         event.setRaceName(dto.getStrEvent());
         event.setCircuitName(dto.getStrVenue());
 
         event.setExternalSource(ExternalMotorsportSource.THESPORTSDB);
-        event.setExternalSourceId(extId);
+        event.setExternalSourceId(parseLongSafe(dto.getIdEvent()));
         event.setFlagUrl(dto.getStrLeagueBadge());
 
         // base Event fields
-        event.setRound(parseIntSafe(dto.getIntRound()));
+        event.setRound(round);
         event.setLocation(dto.getStrVenue());
         event.setDateTime(parseDateTime(dto.getStrTimestamp()));
         event.setLastUpdated(LocalDateTime.now());
 
         // status handling
-        if (dto.getStrResult() != null && !dto.getStrResult().isBlank()) {
+        boolean hasResult = dto.getStrResult() != null && !dto.getStrResult().isBlank();
+        LocalDateTime eventDateTime = parseDateTime(dto.getStrTimestamp());
+        boolean isPastEvent = eventDateTime != null
+                && eventDateTime.isBefore(LocalDateTime.now().minusHours(COMPLETED_THRESHOLD_HOURS));
+
+        if (hasResult) {
             event.setStatus(EventStatus.COMPLETED);
-            event.setWinner(parseWinner(dto.getStrResult()));
+            String winner = parseWinner(dto.getStrResult());
+            event.setWinner(winner);
+        } else if (isPastEvent) {
+            // API may not return results for past events (free tier), but they are completed
+            event.setStatus(EventStatus.COMPLETED);
         } else {
             event.setStatus(EventStatus.SCHEDULED);
         }
 
         eventRepository.save(event);
+
+        if (isNew) {
+            String statusLabel = hasResult ? "COMPLETED" : (isPastEvent ? "COMPLETED (no result data)" : "SCHEDULED");
+            log.info("Inserted {} round {} '{}' as {}",
+                    competition.getDisplayName(), round, dto.getStrEvent(), statusLabel);
+        } else {
+            String updateMsg;
+            if (hasResult) {
+                updateMsg = "-> COMPLETED (winner: " + event.getWinner() + ")";
+            } else if (isPastEvent) {
+                updateMsg = "-> COMPLETED (event date in the past)";
+            } else {
+                updateMsg = "(SCHEDULED)";
+            }
+            log.info("Updated {} round {} '{}' {}",
+                    competition.getDisplayName(), round, dto.getStrEvent(), updateMsg);
+        }
     }
 
     private String parseWinner(String result) {

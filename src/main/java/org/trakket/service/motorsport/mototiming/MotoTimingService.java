@@ -137,8 +137,8 @@ public class MotoTimingService {
         if (eventDto == null) return;
         Long extId = eventDto.getId();
 
-        // do not update completed events
-        if (event.getStatus() == EventStatus.COMPLETED) {
+        // do not update completed events unless we have classification data (winner) to set
+        if (event.getStatus() == EventStatus.COMPLETED && classificationsDto == null) {
             return;
         }
 
@@ -158,7 +158,9 @@ public class MotoTimingService {
         event.setExternalSourceId(extId);
 
         // base Event fields
-        event.setRound(round);
+        if (round != null) {
+            event.setRound(round);
+        }
         event.setLocation(eventDto.getCountry());
 
         // determine race datetime: prefer the key_session with shortname 'RAC'

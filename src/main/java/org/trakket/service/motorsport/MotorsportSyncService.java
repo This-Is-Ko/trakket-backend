@@ -28,9 +28,12 @@ public class MotorsportSyncService {
 
     private Map<MotorsportCompetition, Runnable> syncTasks() {
         return Map.of(
-                MotorsportCompetition.FORMULA_ONE, () -> formulaOneDataService.importLatestRaceResult(season),
+                MotorsportCompetition.FORMULA_ONE, () -> {
+                    formulaOneDataService.importRaceSchedule(season);
+                    formulaOneDataService.importSeasonResults(season);
+                },
                 MotorsportCompetition.WORLD_ENDURANCE_CHAMPIONSHIP, () -> sportsDbService.syncEvents(MotorsportCompetition.WORLD_ENDURANCE_CHAMPIONSHIP),
-                MotorsportCompetition.MOTOGP, () -> motoTimingService.syncEvents(MotorsportCompetition.MOTOGP)
+                MotorsportCompetition.MOTOGP, () -> sportsDbService.syncEvents(MotorsportCompetition.MOTOGP)
         );
     }
 
@@ -41,7 +44,7 @@ public class MotorsportSyncService {
                     formulaOneDataService.importSeasonResults(season);
                 },
                 MotorsportCompetition.WORLD_ENDURANCE_CHAMPIONSHIP, () -> sportsDbService.importSeasonEvents(MotorsportCompetition.WORLD_ENDURANCE_CHAMPIONSHIP),
-                MotorsportCompetition.MOTOGP, () -> motoTimingService.importSeasonEvents(MotorsportCompetition.MOTOGP)
+                MotorsportCompetition.MOTOGP, () -> sportsDbService.importSeasonEvents(MotorsportCompetition.MOTOGP)
         );
     }
 

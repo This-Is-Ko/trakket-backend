@@ -46,7 +46,7 @@ public class AuthService {
         setJwtCookie(response, jwtToken, expiresAt);
 
         AuthUser authUser = (AuthUser) authentication.getPrincipal();
-        return new LoginResponse(authUser.getUser().getEmail(), expiresAt, authUser.getUser().getUsername());
+        return new LoginResponse(authUser.getUser().getEmail(), expiresAt, authUser.getUser().getUsername(), authUser.getUser().getRole().name());
     }
 
     @Transactional
@@ -86,7 +86,7 @@ public class AuthService {
             Long expiresAt = jwtTokenService.extractExpirationTime(jwtToken);
             setJwtCookie(response, jwtToken, expiresAt);
             log.atInfo().setMessage("Google login: existing Google user {}").addArgument(user.getEmail()).log();
-            return new LoginResponse(user.getEmail(), expiresAt, user.getUsername());
+            return new LoginResponse(user.getEmail(), expiresAt, user.getUsername(), user.getRole().name());
         }
 
         // Check if email already registered (conflict with existing email/password user)
@@ -120,7 +120,7 @@ public class AuthService {
         setJwtCookie(response, jwtToken, expiresAt);
 
         log.atInfo().setMessage("Google login: new user created {}").addArgument(newUser.getEmail()).log();
-        return new LoginResponse(newUser.getEmail(), expiresAt, newUser.getUsername());
+        return new LoginResponse(newUser.getEmail(), expiresAt, newUser.getUsername(), newUser.getRole().name());
     }
 
     public void logout(HttpServletResponse response) {
@@ -138,7 +138,8 @@ public class AuthService {
 
         return new UserInfoResponse(
                 user.getEmail(),
-                user.getUsername()
+                user.getUsername(),
+                user.getRole().name()
         );
     }
 
