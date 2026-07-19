@@ -198,7 +198,22 @@ public class FavouritesService {
             unified.sort(Comparator.comparing(UnifiedEntry::dateTime).reversed());
         }
 
-        // 6. Paginate the merged list
+        // 6. Batch-fetch watch status for ALL fetched events (before pagination)
+        Map<Long, WatchedStatus> footballStatuses = fetchFootballWatchStatuses(user, unified, "football");
+        Map<Long, WatchedStatus> motorsportStatuses = fetchMotorsportWatchStatuses(user, unified, "motorsport");
+
+        // 7. Apply watchStatus filter across the full sorted set, then paginate
+        if (watchStatus != null) {
+            unified = unified.stream()
+                    .filter(entry -> {
+                        WatchedStatus ws = "football".equals(entry.sport)
+                                ? footballStatuses.getOrDefault(entry.eventId, WatchedStatus.UNWATCHED)
+                                : motorsportStatuses.getOrDefault(entry.eventId, WatchedStatus.UNWATCHED);
+                        return ws == watchStatus;
+                    })
+                    .collect(Collectors.toList());
+        }
+
         int start = page * pageSize;
         if (start >= unified.size()) {
             return new FavouriteEventsResponse(List.of(), page, pageSize, totalElements, true);
@@ -206,11 +221,7 @@ public class FavouritesService {
         int end = Math.min(start + pageSize, unified.size());
         List<UnifiedEntry> pageEntries = unified.subList(start, end);
 
-        // 7. Batch-fetch watch status for the current page's events
-        Map<Long, WatchedStatus> footballStatuses = fetchFootballWatchStatuses(user, pageEntries, "football");
-        Map<Long, WatchedStatus> motorsportStatuses = fetchMotorsportWatchStatuses(user, pageEntries, "motorsport");
-
-        // 8. Build response DTOs
+        // 8. Build response DTOs (no filtering needed — already done above)
         List<FavouriteEvent> events = new ArrayList<>(pageEntries.size());
         for (UnifiedEntry entry : pageEntries) {
             String sport = entry.sport;
@@ -219,22 +230,11 @@ public class FavouritesService {
             if ("football".equals(sport)) {
                 FootballEvent fe = (FootballEvent) entry.event;
                 ws = footballStatuses.getOrDefault(fe.getId(), WatchedStatus.UNWATCHED);
-
-                // Apply watchStatus filter post-query
-                if (watchStatus != null && ws != watchStatus) {
-                    continue;
-                }
-
                 FootballEventDto dto = FootballEventMapper.toDto(fe);
                 events.add(new FavouriteEvent("football", dto, ws));
             } else {
                 MotorsportEvent me = (MotorsportEvent) entry.event;
                 ws = motorsportStatuses.getOrDefault(me.getId(), WatchedStatus.UNWATCHED);
-
-                if (watchStatus != null && ws != watchStatus) {
-                    continue;
-                }
-
                 MotorsportEventDto dto = MotorsportEventMapper.toDto(me);
                 events.add(new FavouriteEvent("motorsport", dto, ws));
             }
