@@ -492,8 +492,9 @@ public class FavouritesServiceTest {
                 user, 0, 12, null, null, null, null, WatchedStatus.LIVE, false);
 
         assertEquals(1, response.events().size());
-        assertEquals(WatchedStatus.LIVE, response.events().get(0).watchStatus());
+        assertEquals(WatchedStatus.LIVE, response.events().get(0).status());
     }
+
 
     @Test
     void getFavouriteEvents_ShouldPaginateFirstPage() {
@@ -573,7 +574,7 @@ public class FavouritesServiceTest {
                 user, 0, 12, null, null, null, null, null, false);
 
         assertEquals(1, response.events().size());
-        assertEquals(WatchedStatus.REPLAY, response.events().get(0).watchStatus());
+        assertEquals(WatchedStatus.REPLAY, response.events().get(0).status());
     }
 
     @Test
@@ -591,7 +592,7 @@ public class FavouritesServiceTest {
         FavouriteEventsResponse response = favouritesService.getFavouriteEvents(
                 user, 0, 12, null, null, null, null, null, false);
 
-        assertEquals(WatchedStatus.UNWATCHED, response.events().get(0).watchStatus());
+        assertEquals(WatchedStatus.UNWATCHED, response.events().get(0).status());
     }
 
     @Test

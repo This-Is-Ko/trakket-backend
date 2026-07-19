@@ -33,6 +33,10 @@ public class FormulaOneDataService {
     private static final String BASE_URL = "https://api.jolpi.ca/ergast/f1";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
+    // Events whose datetime is more than this far in the past are marked COMPLETED
+    // even if no result data is available
+    private static final int COMPLETED_THRESHOLD_HOURS = 24;
+
     /**
      * Initial season race schedule.
      */
@@ -50,7 +54,7 @@ public class FormulaOneDataService {
 
         if (response != null && response.getMRData() != null) {
             List<RacesResponseDto.Race> races = response.getMRData().getRaceTable().getRaces();
-            races.forEach(race -> saveOrUpdateRaceResult(race, season, true, false));
+            races.forEach(race -> saveOrUpdateRaceResult(race, season, true, true));
             log.info("Saved {} race schedules to database for season {}", races.size(), season);
         }
     }
@@ -131,8 +135,11 @@ public class FormulaOneDataService {
         MotorsportEvent mappedEvent = toEntity(race, true);
 
         if (existingEvent != null) {
-            if (!updateExisting || checkEventStatus && EventStatus.COMPLETED.equals(existingEvent.getStatus())) {
-                log.info("Event already COMPLETED for round {} and season {}. Skipping update.", race.getRound(), season);
+            // allow update if we have result data to set (e.g. winner) even if event is COMPLETED
+            boolean hasResultData = mappedEvent.getWinner() != null;
+            if (!updateExisting || (checkEventStatus && EventStatus.COMPLETED.equals(existingEvent.getStatus()) && !hasResultData)) {
+                log.info("Skipping update for round {} in season {} - already COMPLETED with no new result data",
+                        race.getRound(), season);
                 return;
             }
             existingEvent.updateResult(mappedEvent);
@@ -195,6 +202,12 @@ public class FormulaOneDataService {
                 }
                 event.setStatus(EventStatus.COMPLETED);
             }
+        }
+
+        // If no results available but race datetime is >24h in the past, mark as COMPLETED
+        if (event.getStatus() != EventStatus.COMPLETED && event.getDateTime() != null
+                && event.getDateTime().isBefore(LocalDateTime.now().minusHours(COMPLETED_THRESHOLD_HOURS))) {
+            event.setStatus(EventStatus.COMPLETED);
         }
 
         return event;
