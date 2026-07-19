@@ -155,12 +155,17 @@ public class FavouritesService {
 
         // 4. Fetch events from each sport
         Sort sort = ascending ? Sort.by("dateTime").ascending() : Sort.by("dateTime").descending();
-        int fetchSize = Math.max(pageSize * 3, 30);
+        // Fetch enough events to cover all of a user's favourites in memory.
+        // A very large page size ensures Page.isLast() is true for all realistic
+        // favourite sets, so cross-sport sorting + in-memory pagination works.
+        int fetchSize = Math.max(pageSize * 3, 5000);
 
         long totalFootball = 0;
         long totalMotorsport = 0;
         List<FootballEvent> footballEvents = List.of();
         List<MotorsportEvent> motorsportEvents = List.of();
+        boolean allFootballFetched = true;
+        boolean allMotorsportFetched = true;
 
         if (includeFootball && (!favouriteFootballComps.isEmpty() || !favouriteTeamIds.isEmpty())) {
             Specification<FootballEvent> footballSpec = buildFootballSpec(favouriteFootballComps, favouriteTeamIds, eventStatus);
@@ -168,6 +173,7 @@ public class FavouritesService {
             Page<FootballEvent> footballPage = footballEventRepository.findAll(footballSpec, footballPageable);
             totalFootball = footballPage.getTotalElements();
             footballEvents = footballPage.getContent();
+            allFootballFetched = footballPage.isLast();
         }
 
         if (includeMotorsport && !favouriteMotorsportComps.isEmpty()) {
@@ -176,9 +182,11 @@ public class FavouritesService {
             Page<MotorsportEvent> motorsportPage = motorsportEventRepository.findAll(motorsportSpec, motorsportPageable);
             totalMotorsport = motorsportPage.getTotalElements();
             motorsportEvents = motorsportPage.getContent();
+            allMotorsportFetched = motorsportPage.isLast();
         }
 
         long totalElements = totalFootball + totalMotorsport;
+        boolean allEventsFetched = allFootballFetched && allMotorsportFetched;
         if (totalElements == 0) {
             return new FavouriteEventsResponse(List.of(), page, pageSize, 0, true);
         }
@@ -216,10 +224,9 @@ public class FavouritesService {
 
         int start = page * pageSize;
         if (start >= unified.size()) {
-            // Our in-memory snapshot is exhausted, but there may be more events in the DB
-            // that we didn't fetch (fetchSize limits what we load).
-            boolean last = unified.size() >= totalElements;
-            return new FavouriteEventsResponse(List.of(), page, pageSize, totalElements, last);
+            // Our in-memory snapshot is exhausted. We're only at the last page if
+            // we also fetched every matching row from the DB (not limited by fetchSize).
+            return new FavouriteEventsResponse(List.of(), page, pageSize, totalElements, allEventsFetched);
         }
         int end = Math.min(start + pageSize, unified.size());
         List<UnifiedEntry> pageEntries = unified.subList(start, end);
@@ -243,9 +250,9 @@ public class FavouritesService {
             }
         }
 
-        // We've reached the end of our in-memory snapshot. We're only truly at the last
-        // page if we also fetched everything from the DB (fetchSize caps what we load).
-        boolean last = end >= unified.size() && unified.size() >= totalElements;
+        // We're at the last page only if we exhausted the in-memory list AND
+        // every matching row was fetched from the DB (not limited by fetchSize).
+        boolean last = end >= unified.size() && allEventsFetched;
 
         return new FavouriteEventsResponse(events, page, pageSize, totalElements, last);
     }
