@@ -45,6 +45,10 @@ public class MotorsportEventService implements EventService<MotorsportEvent> {
         return motorsportEventRepository.findAll();
     }
 
+    public Page<MotorsportEvent> findAll(Specification<MotorsportEvent> spec, Pageable pageable) {
+        return motorsportEventRepository.findAll(spec, pageable);
+    }
+
     @Override
     public MotorsportEvent saveEvent(MotorsportEvent event) {
         event.setLastUpdated(LocalDateTime.now());

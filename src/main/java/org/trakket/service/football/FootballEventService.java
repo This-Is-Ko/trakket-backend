@@ -45,6 +45,10 @@ public class FootballEventService implements EventService<FootballEvent> {
         return footballEventRepository.findAll();
     }
 
+    public Page<FootballEvent> findAll(Specification<FootballEvent> spec, Pageable pageable) {
+        return footballEventRepository.findAll(spec, pageable);
+    }
+
     private Page<FootballEvent> getEventPage(
             Integer page,
             Integer pageSize,
