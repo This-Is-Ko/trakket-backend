@@ -15,6 +15,7 @@ public enum FootballCompetition {
     LA_LIGA("La Liga", Gender.M),
     SERIE_A("Serie A", Gender.M),
     BUNDESLIGA("Bundesliga", Gender.M),
+    MAJOR_LEAGUE_SOCCER("Major League Soccer", Gender.M),
     INTERNATIONAL_FRIENDLY_GAMES_MEN("International Friendly Games M", Gender.M),
     EURO_MEN("Euro M", Gender.M),
     WORLD_CUP_MEN("World Cup M", Gender.M),
