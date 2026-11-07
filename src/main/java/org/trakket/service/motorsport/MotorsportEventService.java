@@ -2,6 +2,7 @@ package org.trakket.service.motorsport;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.trakket.dto.admin.MotorsportEventUpdateRequest;
 import org.trakket.dto.motorsport.MotorsportEventDto;
 import org.trakket.dto.motorsport.MotorsportEventWithStatus;
 import org.trakket.dto.motorsport.MotorsportEventsWithStatusResponse;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,6 +55,28 @@ public class MotorsportEventService implements EventService<MotorsportEvent> {
     public MotorsportEvent saveEvent(MotorsportEvent event) {
         event.setLastUpdated(LocalDateTime.now());
         return motorsportEventRepository.save(event);
+    }
+
+    public MotorsportEvent updateEvent(Long id, MotorsportEventUpdateRequest request) {
+        MotorsportEvent event = getEventById(id);
+
+        event.setDateTime(request.dateTime());
+        event.setCompetition(request.competition());
+        event.setStatus(request.status());
+        event.setRound(request.round());
+        event.setSeason(request.season());
+        event.setLocation(blankToNull(request.location()));
+        event.setExternalLink(blankToNull(request.externalLink()));
+        event.setRaceName(blankToNull(request.raceName()));
+        event.setCircuitName(blankToNull(request.circuitName()));
+        event.setWinner(blankToNull(request.winner()));
+        event.setFlagUrl(blankToNull(request.flagUrl()));
+
+        return saveEvent(event);
+    }
+
+    private String blankToNull(String value) {
+        return StringUtils.hasText(value) ? value : null;
     }
 
     @Override

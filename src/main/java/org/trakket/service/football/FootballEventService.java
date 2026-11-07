@@ -2,6 +2,7 @@ package org.trakket.service.football;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.trakket.dto.admin.FootballEventUpdateRequest;
 import org.trakket.dto.football.FootballEventDto;
 import org.trakket.dto.football.FootballEventWithStatus;
 import org.trakket.dto.football.FootballEventsWithStatusResponse;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.trakket.service.EventService;
 
 import java.time.LocalDateTime;
@@ -144,6 +146,25 @@ public class FootballEventService implements EventService<FootballEvent> {
     public FootballEvent saveEvent(FootballEvent event) {
         event.setLastUpdated(LocalDateTime.now());
         return footballEventRepository.save(event);
+    }
+
+    public FootballEvent updateEvent(Long id, FootballEventUpdateRequest request) {
+        FootballEvent event = getEventById(id);
+
+        event.setDateTime(request.dateTime());
+        event.setCompetition(request.competition());
+        event.setStatus(request.status());
+        event.setRound(request.round());
+        event.setLocation(blankToNull(request.location()));
+        event.setExternalLink(blankToNull(request.externalLink()));
+        event.setHomeScore(request.homeScore());
+        event.setAwayScore(request.awayScore());
+
+        return saveEvent(event);
+    }
+
+    private String blankToNull(String value) {
+        return StringUtils.hasText(value) ? value : null;
     }
 
     @Override

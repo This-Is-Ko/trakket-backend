@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.trakket.dto.admin.FootballEventUpdateRequest;
 import org.trakket.dto.football.FootballEventsWithStatusResponse;
 import org.trakket.enums.EventStatus;
 import org.trakket.enums.FootballCompetition;
@@ -234,6 +235,81 @@ public class FootballEventServiceTest {
 
         assertNotNull(saved.getLastUpdated());
         verify(footballEventRepository, times(1)).save(any(FootballEvent.class));
+    }
+
+    @Test
+    void updateEvent_ShouldMapAllFieldsAndPersist() {
+        when(footballEventRepository.findById(1L)).thenReturn(Optional.of(event1));
+        when(footballEventRepository.save(any(FootballEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        FootballEventUpdateRequest request = new FootballEventUpdateRequest(
+                LocalDateTime.now().plusDays(5),
+                FootballCompetition.LA_LIGA,
+                EventStatus.COMPLETED,
+                20,
+                "Camp Nou",
+                "http://event/updated",
+                3,
+                1
+        );
+
+        FootballEvent updated = footballEventService.updateEvent(1L, request);
+
+        assertEquals(request.dateTime(), updated.getDateTime());
+        assertEquals(FootballCompetition.LA_LIGA, updated.getCompetition());
+        assertEquals(EventStatus.COMPLETED, updated.getStatus());
+        assertEquals(20, updated.getRound());
+        assertEquals("Camp Nou", updated.getLocation());
+        assertEquals("http://event/updated", updated.getExternalLink());
+        assertEquals(3, updated.getHomeScore());
+        assertEquals(1, updated.getAwayScore());
+        assertEquals(homeTeam, updated.getHomeTeam());
+        assertEquals(awayTeam, updated.getAwayTeam());
+        assertNotNull(updated.getLastUpdated());
+        verify(footballEventRepository, times(1)).save(event1);
+    }
+
+    @Test
+    void updateEvent_ShouldNormalizeBlankStringsToNull() {
+        when(footballEventRepository.findById(1L)).thenReturn(Optional.of(event1));
+        when(footballEventRepository.save(any(FootballEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        FootballEventUpdateRequest request = new FootballEventUpdateRequest(
+                LocalDateTime.now().plusDays(5),
+                FootballCompetition.LA_LIGA,
+                EventStatus.SCHEDULED,
+                20,
+                "   ",
+                "",
+                null,
+                null
+        );
+
+        FootballEvent updated = footballEventService.updateEvent(1L, request);
+
+        assertNull(updated.getLocation());
+        assertNull(updated.getExternalLink());
+    }
+
+    @Test
+    void updateEvent_ShouldThrow_WhenNotFound() {
+        when(footballEventRepository.findById(999L)).thenReturn(Optional.empty());
+
+        FootballEventUpdateRequest request = new FootballEventUpdateRequest(
+                LocalDateTime.now().plusDays(5),
+                FootballCompetition.LA_LIGA,
+                EventStatus.SCHEDULED,
+                20,
+                "Camp Nou",
+                "http://event/updated",
+                null,
+                null
+        );
+
+        assertThrows(EntityNotFoundException.class, () -> footballEventService.updateEvent(999L, request));
+        verify(footballEventRepository, never()).save(any(FootballEvent.class));
     }
 
     @Test

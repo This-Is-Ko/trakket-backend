@@ -29,7 +29,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/events")
-@PreAuthorize("hasRole('ROLE_ADMIN')")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class AdminEventController {
 
     private final FootballEventService footballEventService;
@@ -79,11 +79,7 @@ public class AdminEventController {
             @PathVariable Long id,
             @Valid @RequestBody FootballEventUpdateRequest request
     ) {
-        FootballEvent event = footballEventService.getEventById(id);
-        event.setDateTime(request.dateTime());
-        event.setHomeScore(request.homeScore());
-        event.setAwayScore(request.awayScore());
-        footballEventService.saveEvent(event);
+        FootballEvent event = footballEventService.updateEvent(id, request);
         return ResponseEntity.ok(FootballEventMapper.toDto(event));
     }
 
@@ -131,10 +127,7 @@ public class AdminEventController {
             @PathVariable Long id,
             @Valid @RequestBody MotorsportEventUpdateRequest request
     ) {
-        MotorsportEvent event = motorsportEventService.getEventById(id);
-        event.setDateTime(request.dateTime());
-        event.setWinner(request.winner());
-        motorsportEventService.saveEvent(event);
+        MotorsportEvent event = motorsportEventService.updateEvent(id, request);
         return ResponseEntity.ok(MotorsportEventMapper.toDto(event));
     }
 }
