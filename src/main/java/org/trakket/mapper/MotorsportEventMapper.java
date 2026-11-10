@@ -10,6 +10,7 @@ public class MotorsportEventMapper {
                 event.getId(),
                 event.getDateTime(),
                 event.getCompetition(),
+                event.getSeason(),
                 event.getRound(),
                 event.getLocation(),
                 event.getStatus(),

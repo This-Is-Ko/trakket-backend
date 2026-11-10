@@ -9,6 +9,7 @@ public record MotorsportEventDto(
         Long id,
         LocalDateTime dateTime,
         MotorsportCompetition competition,
+        Integer season,
         Integer round,
         String location,
         EventStatus status,
