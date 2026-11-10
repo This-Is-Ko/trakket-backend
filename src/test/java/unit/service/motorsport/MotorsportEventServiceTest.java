@@ -167,4 +167,23 @@ public class MotorsportEventServiceTest {
         assertThrows(EntityNotFoundException.class, () -> motorsportEventService.updateEvent(999L, request));
         verify(motorsportEventRepository, never()).save(any(MotorsportEvent.class));
     }
+
+    @Test
+    void deleteEvent_ShouldDeleteWatchStatusesAndEvent_WhenExists() {
+        when(motorsportEventRepository.findById(1L)).thenReturn(Optional.of(event));
+
+        motorsportEventService.deleteEvent(1L);
+
+        verify(watchStatusRepository, times(1)).deleteByEventId(1L);
+        verify(motorsportEventRepository, times(1)).deleteById(1L);
+    }
+
+    @Test
+    void deleteEvent_ShouldThrow_WhenNotExists() {
+        when(motorsportEventRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> motorsportEventService.deleteEvent(999L));
+        verify(watchStatusRepository, never()).deleteByEventId(anyLong());
+        verify(motorsportEventRepository, never()).deleteById(anyLong());
+    }
 }
