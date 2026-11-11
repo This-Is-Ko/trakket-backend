@@ -313,19 +313,21 @@ public class FootballEventServiceTest {
     }
 
     @Test
-    void deleteEvent_ShouldDelete_WhenExists() {
-        when(footballEventRepository.existsById(1L)).thenReturn(true);
+    void deleteEvent_ShouldDeleteWatchStatusesAndEvent_WhenExists() {
+        when(footballEventRepository.findById(1L)).thenReturn(Optional.of(event1));
 
         footballEventService.deleteEvent(1L);
 
+        verify(watchStatusRepository, times(1)).deleteByEventId(1L);
         verify(footballEventRepository, times(1)).deleteById(1L);
     }
 
     @Test
     void deleteEvent_ShouldThrow_WhenNotExists() {
-        when(footballEventRepository.existsById(123L)).thenReturn(false);
+        when(footballEventRepository.findById(123L)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> footballEventService.deleteEvent(123L));
+        verify(watchStatusRepository, never()).deleteByEventId(anyLong());
         verify(footballEventRepository, never()).deleteById(anyLong());
     }
 

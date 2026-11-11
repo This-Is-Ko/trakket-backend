@@ -6,6 +6,7 @@ import org.trakket.model.FootballEventWatchStatus;
 import org.trakket.model.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -27,6 +28,10 @@ public interface FootballEventWatchStatusRepository extends JpaRepository<Footba
     );
 
     List<FootballEventWatchStatus> findByUserAndEventIdIn(User user, List<Long> eventIds);
+
+    @Modifying
+    @Query("DELETE FROM FootballEventWatchStatus ws WHERE ws.event.id = :eventId")
+    void deleteByEventId(@Param("eventId") Long eventId);
 
     @Query("""
            select e.competition as competition, count(distinct e.id) as cnt

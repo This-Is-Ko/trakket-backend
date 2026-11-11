@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.trakket.service.EventService;
 
@@ -168,10 +169,10 @@ public class FootballEventService implements EventService<FootballEvent> {
     }
 
     @Override
+    @Transactional
     public void deleteEvent(Long id) {
-        if (!footballEventRepository.existsById(id)) {
-            throw new EntityNotFoundException("FootballEvent not found with id " + id);
-        }
+        FootballEvent event = getEventById(id);
+        watchStatusRepository.deleteByEventId(event.getId());
         footballEventRepository.deleteById(id);
     }
 

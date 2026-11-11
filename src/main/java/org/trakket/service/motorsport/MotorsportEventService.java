@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -80,10 +81,10 @@ public class MotorsportEventService implements EventService<MotorsportEvent> {
     }
 
     @Override
+    @Transactional
     public void deleteEvent(Long id) {
-        if (!motorsportEventRepository.existsById(id)) {
-            throw new EntityNotFoundException("MotorsportEvent not found with id " + id);
-        }
+        MotorsportEvent event = getEventById(id);
+        watchStatusRepository.deleteByEventId(event.getId());
         motorsportEventRepository.deleteById(id);
     }
 
