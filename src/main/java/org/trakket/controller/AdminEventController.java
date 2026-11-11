@@ -76,7 +76,7 @@ public class AdminEventController {
 
     @PutMapping("/football/{id}")
     public ResponseEntity<FootballEventDto> updateFootballEvent(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody FootballEventUpdateRequest request
     ) {
         FootballEvent event = footballEventService.updateEvent(id, request);
@@ -124,7 +124,7 @@ public class AdminEventController {
 
     @PutMapping("/motorsport/{id}")
     public ResponseEntity<MotorsportEventDto> updateMotorsportEvent(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody MotorsportEventUpdateRequest request
     ) {
         MotorsportEvent event = motorsportEventService.updateEvent(id, request);

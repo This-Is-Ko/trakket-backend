@@ -35,7 +35,7 @@ public class FootballEventController {
     }
 
     @GetMapping("/{id}")
-    public FootballEvent getFootballEvent(@PathVariable Long id) {
+    public FootballEvent getFootballEvent(@PathVariable("id") Long id) {
         return footballEventService.getEventById(id);
     }
 
@@ -47,7 +47,7 @@ public class FootballEventController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
-    public void deleteFootballEvent(@PathVariable Long id) {
+    public void deleteFootballEvent(@PathVariable("id") Long id) {
         footballEventService.deleteEvent(id);
     }
 
@@ -69,7 +69,7 @@ public class FootballEventController {
     @GetMapping("/status")
     public ResponseEntity<WatchStatusUpdateResponse> getStatus(
             Authentication authentication,
-            @RequestParam Long eventId) {
+            @RequestParam("eventId") Long eventId) {
 
         FootballEventWatchStatus watchStatus = footballEventService.getWatchStatus((User) authentication.getDetails(), eventId);
         if (watchStatus == null) {
