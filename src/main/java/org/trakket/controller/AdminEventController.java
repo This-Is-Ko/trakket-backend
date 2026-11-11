@@ -83,6 +83,12 @@ public class AdminEventController {
         return ResponseEntity.ok(FootballEventMapper.toDto(event));
     }
 
+    @DeleteMapping("/football/{id}")
+    public ResponseEntity<Void> deleteFootballEvent(@PathVariable("id") Long id) {
+        footballEventService.deleteEvent(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ─── Motorsport ─────────────────────────────────────────────────────────
 
     @GetMapping("/motorsport")
@@ -129,5 +135,11 @@ public class AdminEventController {
     ) {
         MotorsportEvent event = motorsportEventService.updateEvent(id, request);
         return ResponseEntity.ok(MotorsportEventMapper.toDto(event));
+    }
+
+    @DeleteMapping("/motorsport/{id}")
+    public ResponseEntity<Void> deleteMotorsportEvent(@PathVariable("id") Long id) {
+        motorsportEventService.deleteEvent(id);
+        return ResponseEntity.noContent().build();
     }
 }

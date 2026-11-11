@@ -6,6 +6,7 @@ import org.trakket.model.MotorsportEventWatchStatus;
 import org.trakket.model.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,6 +23,10 @@ public interface MotorsportEventWatchStatusRepository extends JpaRepository<Moto
             WatchedStatus status,
             Pageable pageable
     );
+
+    @Modifying
+    @Query("DELETE FROM MotorsportEventWatchStatus ws WHERE ws.event.id = :eventId")
+    void deleteByEventId(@Param("eventId") Long eventId);
 
     @Query("""
            select e.competition as competition, count(distinct e.id) as cnt

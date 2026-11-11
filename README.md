@@ -115,6 +115,17 @@ All endpoints are under `/api/`. Public routes are noted; all others require aut
 | DELETE | `/api/football/events/{id}` | Admin | Delete a football event |
 | GET | `/api/football/teams` | Authenticated | List all teams |
 
+### Admin Events
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/admin/events/football` | Admin | List football events (paginated, filterable) |
+| PUT | `/api/admin/events/football/{id}` | Admin | Update a football event |
+| DELETE | `/api/admin/events/football/{id}` | Admin | Delete a football event and its watch statuses |
+| GET | `/api/admin/events/motorsport` | Admin | List motorsport events (paginated, filterable) |
+| PUT | `/api/admin/events/motorsport/{id}` | Admin | Update a motorsport event |
+| DELETE | `/api/admin/events/motorsport/{id}` | Admin | Delete a motorsport event and its watch statuses |
+
 ### Football Sync (Admin)
 
 | Method | Path | Description |
